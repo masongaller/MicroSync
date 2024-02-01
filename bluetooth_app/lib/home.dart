@@ -1,4 +1,10 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
+//Acknowledgement: https://medium.com/@nandhuraj/exploring-bluetooth-communication-with-flutter-blue-plus-package-3c442d0e6cdb
+//Used this guide to help me setup scanning and connecting to a bluetooth device
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -12,72 +18,139 @@ class MyHomePage extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
-
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMixin<MyHomePage> {
-  int _counter = 0;
+class _MyHomePageState extends State<MyHomePage>
+    with AutomaticKeepAliveClientMixin<MyHomePage> {
+  String _deviceName = "No device connected";
+  String _currText = "Connect";
+  Icon _currIcon = Icon(Icons.bluetooth_disabled);
+  List<BluetoothDevice> devices = [];
 
-  void _incrementCounter() {
+  Future<void> _connectOrDisconnect() async {
+    // Check if Bluetooth is enabled
+    bool isBluetoothEnabled = await FlutterBluePlus.isSupported;
+    if (!isBluetoothEnabled) {
+      await _bluetoothAlert();
+      return;
+    }
+
+    // Toggle between connect and disconnect
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      if (_currIcon.icon == Icons.bluetooth_disabled) {
+        _currIcon = Icon(Icons.bluetooth_connected);
+        _deviceName = "Device connected";
+        _currText = "Disconnect";
+      } else {
+        _currIcon = Icon(Icons.bluetooth_disabled);
+        _deviceName = "No device connected";
+        _currText = "Connect";
+      }
     });
+
+    if (_currIcon.icon == Icons.bluetooth_connected) {
+      // Start scan only when connecting
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
+
+      // Clear the existing devices list
+      setState(() {
+        devices.clear();
+      });
+
+      // Listen to scanResults and add devices to the list
+      FlutterBluePlus.scanResults.listen((results) {
+        for (ScanResult result in results) {
+          if (!devices.contains(result.device)) {
+            setState(() {
+              devices.add(result.device);
+            });
+          }
+        }
+      });
+    } else {
+      // Stop scan when disconnecting
+      FlutterBluePlus.stopScan();
+    }
+  }
+
+  Future<void> _bluetoothAlert() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true, // user can tap out
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Bluetooth not enabled'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Please enable Bluetooth in your settings and try again.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    var theme = Theme.of(context);
     return Scaffold(
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have clicked the button this many times:',
+            Text(
+              'You are currently connected to:',
+              style: theme.textTheme.titleMedium,
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              '$_deviceName',
+              style: theme.textTheme.titleMedium,
             ),
+            Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: devices.length,
+                  itemBuilder: (context, index) {
+                    return Card( 
+                      child: ListTile(
+                      leading: Icon(Icons.bluetooth),
+                      title: Text(devices[index].platformName.toString()),
+                      subtitle: Text(devices[index].remoteId.toString()),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          // Connect to the selected device
+                          devices[index].connect();
+                        },
+                        child: const Text('Connect'),
+                      )
+                    ));
+                  },
+                ),
+              ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      floatingActionButton: FloatingActionButton.extended(
+        label: Text(_currText),
+        onPressed: _connectOrDisconnect,
+        tooltip: 'Connect Bluetooth Device',
+        icon: _currIcon,
+      ),
     );
   }
-  
+
   @override
-  // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }

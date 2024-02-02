@@ -25,32 +25,40 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with AutomaticKeepAliveClientMixin<MyHomePage> {
   String _deviceName = "No device connected";
-  String _currText = "Connect";
+  String _currText = "Scan";
   Icon _currIcon = Icon(Icons.bluetooth_disabled);
   List<BluetoothDevice> devices = [];
+  late BluetoothDevice _device;
+  bool _disconnected = true;
 
   Future<void> _connectOrDisconnect() async {
-    // Check if Bluetooth is enabled
+    // Check if Bluetooth is enabled and on
     bool isBluetoothEnabled = await FlutterBluePlus.isSupported;
-    if (!isBluetoothEnabled) {
+    bool isBluetoothOn = await FlutterBluePlus.isOn;
+    if (!isBluetoothEnabled || !isBluetoothOn) {
+      setState(() {
+        devices = [];
+        _currIcon = Icon(Icons.bluetooth_disabled);
+        _deviceName = "No device connected";
+        _currText = "Scan";
+        _disconnected = true;
+      });
       await _bluetoothAlert();
       return;
     }
 
     // Toggle between connect and disconnect
     setState(() {
-      if (_currIcon.icon == Icons.bluetooth_disabled) {
-        _currIcon = Icon(Icons.bluetooth_connected);
-        _deviceName = "Device connected";
-        _currText = "Disconnect";
-      } else {
+      if (_currIcon.icon != Icons.bluetooth_disabled) {
         _currIcon = Icon(Icons.bluetooth_disabled);
         _deviceName = "No device connected";
-        _currText = "Connect";
+        _currText = "Scan";
+        _disconnected = true;
+        _device.disconnect();
       }
     });
 
-    if (_currIcon.icon == Icons.bluetooth_connected) {
+    if (_currIcon.icon != Icons.bluetooth_connected) {
       // Start scan only when connecting
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
 
@@ -118,27 +126,43 @@ class _MyHomePageState extends State<MyHomePage>
               '$_deviceName',
               style: theme.textTheme.titleMedium,
             ),
-            Expanded(
+            Visibility(
+              visible: _disconnected,
+              child: Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
                   itemCount: devices.length,
                   itemBuilder: (context, index) {
-                    return Card( 
-                      child: ListTile(
-                      leading: Icon(Icons.bluetooth),
-                      title: Text(devices[index].platformName.toString()),
-                      subtitle: Text(devices[index].remoteId.toString()),
-                      trailing: ElevatedButton(
-                        onPressed: () {
-                          // Connect to the selected device
-                          devices[index].connect();
-                        },
-                        child: const Text('Connect'),
-                      )
-                    ));
+                    return Card(
+                        child: ListTile(
+                            leading: Icon(Icons.bluetooth),
+                            title: Text(devices[index].platformName.toString()),
+                            subtitle: Text(devices[index].remoteId.toString()),
+                            trailing: ElevatedButton(
+                              onPressed: () async {
+                                // Connect to the selected device
+                                await devices[index].connect();
+                                _device = devices[index];
+                                setState(() {
+                                  if (devices[index].platformName.toString() !=
+                                      "") {
+                                    _deviceName =
+                                        devices[index].platformName.toString();
+                                  } else {
+                                    _deviceName =
+                                        devices[index].remoteId.toString();
+                                  }
+                                  _currIcon = Icon(Icons.bluetooth_connected);
+                                  _currText = "Disconnect";
+                                  _disconnected = false;
+                                });
+                              },
+                              child: const Text('Connect'),
+                            )));
                   },
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -149,6 +173,22 @@ class _MyHomePageState extends State<MyHomePage>
         icon: _currIcon,
       ),
     );
+  }
+
+//Method i was using for testing
+  void readCharacteristic(BluetoothDevice device) async {
+    List<BluetoothDevice> blue = FlutterBluePlus.connectedDevices;
+    List<BluetoothService> services = await device.discoverServices();
+    services.forEach((service) async {
+      // Reads all characteristics
+      var characteristics = service.characteristics;
+      for (BluetoothCharacteristic c in characteristics) {
+        if (c.properties.read) {
+          List<int> value = await c.read();
+          print(value);
+        }
+      }
+    });
   }
 
   @override

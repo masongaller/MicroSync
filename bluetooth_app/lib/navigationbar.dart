@@ -12,7 +12,7 @@ class MyNavigationBar extends StatefulWidget {
 
 class _MyNavigationBarState extends State<MyNavigationBar> {
   int currentPageIndex = 0;
-  String appBarTitle = "Hi";
+  String appBarTitle = "Home";
   final PageController _pageController = PageController(initialPage: 0);
 
   @override

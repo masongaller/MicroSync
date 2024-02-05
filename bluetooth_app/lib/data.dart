@@ -10,31 +10,75 @@ class MyDataPage extends StatefulWidget {
 
 class _MyDataPageState extends State<MyDataPage>
     with AutomaticKeepAliveClientMixin<MyDataPage> {
+  double minY = 0;
+  double maxY = 10;
+  double minX = 0;
+  double maxX = 10;
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+
     return AspectRatio(
       aspectRatio: 1.23,
       child: Stack(
         children: <Widget>[
           Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const SizedBox(
-                height: 37,
+                height: 15,
               ),
-              Text(
-                'Sample Chart',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-                textAlign: TextAlign.center,
+              Stack(
+                alignment: AlignmentDirectional.centerStart,
+                children: [
+                  Positioned(
+                    bottom: 15,
+                    left: 15,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.add),
+                      iconSize: 20,
+                      color: Colors.green,
+                      onPressed: () {
+                        setState(() {
+                          maxY += 1;
+                        });
+                      },
+                    ),
+                  ),
+                  Positioned(
+                    top: 15,
+                    left: 15,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.remove),
+                      iconSize: 20,
+                      color: Colors.red,
+                      onPressed: () {
+                        setState(() {
+                          maxY -= 1;
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      alignment: Alignment.center, // Align text to the center
+                      child: Text(
+                        'Sample Chart',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(
-                height: 37,
+                height: 15,
               ),
               Expanded(
                 child: Padding(
@@ -59,12 +103,20 @@ class _MyDataPageState extends State<MyDataPage>
                         ),
                       ],
                       titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(sideTitles: bottomTitles),
-                        leftTitles: AxisTitles(sideTitles: leftTitles),
+                        bottomTitles: AxisTitles(
+                          sideTitles: bottomTitles,
+                          axisNameWidget: Text('Axis name'),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: leftTitles,
+                          axisNameWidget: Text('Axis name'),
+                        ),
                         topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                         rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false)),
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       lineTouchData: LineTouchData(
                         handleBuiltInTouches: true,
@@ -84,13 +136,40 @@ class _MyDataPageState extends State<MyDataPage>
                         ),
                       ),
                       gridData: const FlGridData(show: true),
-                      minX: 0,
-                      minY: 0,
-                      maxX: 10,
-                      maxY: 10,
+                      minX: minX,
+                      minY: minY,
+                      maxX: maxX,
+                      maxY: maxY,
                     ),
                   ),
                 ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.remove),
+                    iconSize: 20,
+                    color: Colors.red,
+                    onPressed: () {
+                      setState(() {
+                        maxX -= 1;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.add),
+                    iconSize: 20,
+                    color: Colors.green,
+                    onPressed: () {
+                      setState(() {
+                        maxX += 1;
+                      });
+                    },
+                  ),
+                ],
               ),
               const SizedBox(
                 height: 10,

@@ -1,3 +1,4 @@
+import 'package:bluetooth_app/data.dart';
 import 'package:bluetooth_app/home.dart';
 import 'package:bluetooth_app/saved.dart';
 import 'package:bluetooth_app/settings.dart';
@@ -11,8 +12,8 @@ class MyNavigationBar extends StatefulWidget {
 }
 
 class _MyNavigationBarState extends State<MyNavigationBar> {
-  int currentPageIndex = 0;
-  String appBarTitle = "Home";
+  int currentPageIndex = 2;
+  String appBarTitle = "Connect";
   final PageController _pageController = PageController(initialPage: 0);
 
   @override
@@ -31,9 +32,17 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+              selectedIcon: Icon(Icons.analytics),
+              icon: Icon(Icons.analytics_outlined),
+              label: "Data"),
+          NavigationDestination(
+              selectedIcon: Icon(Icons.abc),
+              icon: Icon(Icons.abc),
+              label: "Place Holder"),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.bluetooth),
+            icon: Icon(Icons.bluetooth_outlined),
+            label: 'Connect',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.bookmark),
@@ -51,6 +60,8 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         controller: _pageController,
         onPageChanged: _onPageChanged,
         children: const [
+          MyDataPage(),
+          MySavedPage(),
           MyHomePage(),
           MySavedPage(),
           MySettingsPage(),
@@ -76,16 +87,17 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
   String _getAppBarTitle(int index) {
     switch (index) {
       case 0:
-        return 'Home';
+        return 'Data';
       case 1:
-        return 'Saved';
+        return 'Place Holder';
       case 2:
+        return 'Connect';
+      case 3:
+        return 'Saved';
+      case 4:
         return 'Settings';
       default:
         return '';
     }
   }
 }
-
-
-

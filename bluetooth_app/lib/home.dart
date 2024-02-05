@@ -9,15 +9,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -72,7 +63,10 @@ class _MyHomePageState extends State<MyHomePage>
         for (ScanResult result in results) {
           if (!devices.contains(result.device)) {
             setState(() {
-              devices.add(result.device);
+              //Only add devices that are named
+              if (result.device.platformName != "") {
+                devices.add(result.device);
+              }
             });
           }
         }
@@ -156,6 +150,7 @@ class _MyHomePageState extends State<MyHomePage>
                                   _currText = "Disconnect";
                                   _disconnected = false;
                                 });
+                                //readCharacteristic(_device); //code for testing
                               },
                               child: const Text('Connect'),
                             )));
@@ -185,7 +180,6 @@ class _MyHomePageState extends State<MyHomePage>
       for (BluetoothCharacteristic c in characteristics) {
         if (c.properties.read) {
           List<int> value = await c.read();
-          print(value);
         }
       }
     });

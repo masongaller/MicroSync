@@ -1,8 +1,11 @@
-import 'package:bluetooth_app/data.dart';
+import 'package:bluetooth_app/graph.dart';
 import 'package:bluetooth_app/home.dart';
 import 'package:bluetooth_app/saved.dart';
 import 'package:bluetooth_app/settings.dart';
+import 'package:bluetooth_app/shareddata.dart';
+import 'package:bluetooth_app/table.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MyNavigationBar extends StatefulWidget {
   const MyNavigationBar({super.key});
@@ -34,11 +37,11 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
           NavigationDestination(
               selectedIcon: Icon(Icons.analytics),
               icon: Icon(Icons.analytics_outlined),
-              label: "Data"),
+              label: "Graph"),
           NavigationDestination(
-              selectedIcon: Icon(Icons.abc),
-              icon: Icon(Icons.abc),
-              label: "Place Holder"),
+              selectedIcon: Icon(Icons.table_rows),
+              icon: Icon(Icons.table_rows_outlined),
+              label: "Table"),
           NavigationDestination(
             selectedIcon: Icon(Icons.bluetooth),
             icon: Icon(Icons.bluetooth_outlined),
@@ -56,16 +59,19 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
           ),
         ],
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: const [
-          MyDataPage(),
-          MySavedPage(),
-          MyHomePage(),
-          MySavedPage(),
-          MySettingsPage(),
-        ],
+      body: ChangeNotifierProvider(
+        create: (context) => SharedData(),
+        child: PageView(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          children: const [
+            MyDataPage(),
+            MyTablePage(),
+            MyHomePage(),
+            MySavedPage(),
+            MySettingsPage(),
+          ],
+        ),
       ),
     );
   }
@@ -87,9 +93,9 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
   String _getAppBarTitle(int index) {
     switch (index) {
       case 0:
-        return 'Data';
+        return 'Graph';
       case 1:
-        return 'Place Holder';
+        return 'Table';
       case 2:
         return 'Connect';
       case 3:

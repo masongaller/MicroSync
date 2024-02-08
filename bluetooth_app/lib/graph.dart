@@ -1,5 +1,7 @@
+import 'package:bluetooth_app/shareddata.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MyDataPage extends StatefulWidget {
   const MyDataPage({Key? key}) : super(key: key);
@@ -14,9 +16,14 @@ class _MyDataPageState extends State<MyDataPage>
   double maxY = 10;
   double minX = 0;
   double maxX = 10;
+
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+    final watchPoints = context.watch<
+        SharedData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+    final readPoints = context
+        .read<SharedData>(); //To modify the data without rebuilding the widget
 
     return AspectRatio(
       aspectRatio: 1.23,
@@ -87,13 +94,10 @@ class _MyDataPageState extends State<MyDataPage>
                     LineChartData(
                       lineBarsData: [
                         LineChartBarData(
-                          spots: [
-                            const FlSpot(0, 3),
-                            const FlSpot(1, 1),
-                            const FlSpot(2, 4),
-                            const FlSpot(3, 2),
-                            const FlSpot(4, 5),
-                          ],
+                          spots: List<FlSpot>.generate(
+                              watchPoints.points.length,
+                              (index) => FlSpot(watchPoints.points[index].x.toDouble(),
+                                  watchPoints.points[index].y.toDouble())),
                           isCurved: true,
                           color: theme.colorScheme.primary,
                           barWidth: 4,

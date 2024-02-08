@@ -10,9 +10,6 @@ class MyTablePage extends StatefulWidget {
 
 class _MyTablePageState extends State<MyTablePage>
     with AutomaticKeepAliveClientMixin<MyTablePage> {
-  static const int numItems = 20;
-  List<bool> selected = List<bool>.generate(numItems, (int index) => false);
-
   @override
   Widget build(BuildContext context) {
     final watchPoints = context.watch<
@@ -22,55 +19,9 @@ class _MyTablePageState extends State<MyTablePage>
 
     return Scaffold(
       body: Center(
-        child: Column(
-          children: <Widget>[
-            SingleChildScrollView(
-              child: DataTable(
-                columns: const <DataColumn>[
-                  DataColumn(
-                    label: Expanded(
-                      child: Text(
-                        'Time(s)',
-                        style: TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Expanded(
-                      child: Text(
-                        'X',
-                        style: TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Expanded(
-                      child: Text(
-                        'Y',
-                        style: TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ),
-                ],
-                rows: List<DataRow>.generate(
-                  watchPoints.points.length,
-                  (int index) => DataRow(
-                    color: MaterialStateProperty.resolveWith<Color>(
-                        (Set<MaterialState> states) {
-                      return Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.08);
-                    }),
-                    cells: <DataCell>[
-                      DataCell(Text(index.toString())),
-                      DataCell(Text(watchPoints.points[index].x.toString())),
-                      DataCell(Text(watchPoints.points[index].y.toString())),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+        child: SingleChildScrollView(
+            child: Column(
+          children: [
             FloatingActionButton(
               onPressed: () {
                 readPoints.addPoint();
@@ -78,8 +29,53 @@ class _MyTablePageState extends State<MyTablePage>
               tooltip: 'Add Point',
               child: const Icon(Icons.add),
             ),
+            DataTable(
+              columns: const <DataColumn>[
+                DataColumn(
+                  label: Expanded(
+                    child: Text(
+                      'Time(s)',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Expanded(
+                    child: Text(
+                      'X',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ),
+                DataColumn(
+                  label: Expanded(
+                    child: Text(
+                      'Y',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ),
+              ],
+              rows: List<DataRow>.generate(
+                watchPoints.points.length,
+                (int index) => DataRow(
+                  color: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                    return Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withOpacity(0.08);
+                  }),
+                  cells: <DataCell>[
+                    DataCell(Text(index.toString())),
+                    DataCell(Text(watchPoints.points[index].x.toString())),
+                    DataCell(Text(watchPoints.points[index].y.toString())),
+                  ],
+                ),
+              ),
+            ),
           ],
-        ),
+        )),
       ),
     );
   }

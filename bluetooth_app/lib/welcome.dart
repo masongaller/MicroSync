@@ -63,7 +63,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(seconds: 1),
-        color: theme.colorScheme.inversePrimary,
         child: AnimatedOpacity(
           duration: const Duration(seconds: 1),
           opacity: _opacity,
@@ -86,7 +85,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     style: GoogleFonts.oswald(
                       textStyle: TextStyle(
                         fontSize: 75,
-                        color: theme.colorScheme.onPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -105,7 +103,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: Icon(
                     Icons.bluetooth,
                     size: 100,
-                    color: theme.colorScheme.onPrimary,
                   ),
                 ),
               ],

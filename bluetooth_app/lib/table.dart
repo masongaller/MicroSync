@@ -59,13 +59,6 @@ class _MyTablePageState extends State<MyTablePage>
               rows: List<DataRow>.generate(
                 watchPoints.points.length,
                 (int index) => DataRow(
-                  color: MaterialStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                    return Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withOpacity(0.08);
-                  }),
                   cells: <DataCell>[
                     DataCell(Text(index.toString())),
                     DataCell(Text(watchPoints.points[index].x.toString())),

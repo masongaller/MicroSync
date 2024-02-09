@@ -44,7 +44,6 @@ class _MyDataPageState extends State<MyDataPage>
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.add),
                       iconSize: 20,
-                      color: Colors.green,
                       onPressed: () {
                         setState(() {
                           maxY += 1;
@@ -59,7 +58,6 @@ class _MyDataPageState extends State<MyDataPage>
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.remove),
                       iconSize: 20,
-                      color: Colors.red,
                       onPressed: () {
                         setState(() {
                           maxY -= 1;
@@ -73,7 +71,6 @@ class _MyDataPageState extends State<MyDataPage>
                       child: Text(
                         'Sample Chart',
                         style: TextStyle(
-                          color: theme.colorScheme.primary,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2,
@@ -96,11 +93,10 @@ class _MyDataPageState extends State<MyDataPage>
                         LineChartBarData(
                           spots: List<FlSpot>.generate(
                               watchPoints.points.length,
-                              (index) => FlSpot(watchPoints.points[index].x.toDouble(),
+                              (index) => FlSpot(
+                                  watchPoints.points[index].x.toDouble(),
                                   watchPoints.points[index].y.toDouble())),
                           isCurved: true,
-                          color: theme.colorScheme.primary,
-                          barWidth: 4,
                           isStrokeCapRound: true,
                           dotData: const FlDotData(show: true),
                           belowBarData: BarAreaData(show: false),
@@ -122,12 +118,6 @@ class _MyDataPageState extends State<MyDataPage>
                           sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
-                      lineTouchData: LineTouchData(
-                        handleBuiltInTouches: true,
-                        touchTooltipData: LineTouchTooltipData(
-                          tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
-                        ),
-                      ),
                       borderData: FlBorderData(
                         show: true,
                         border: Border(
@@ -142,8 +132,8 @@ class _MyDataPageState extends State<MyDataPage>
                       gridData: const FlGridData(show: true),
                       minX: minX,
                       minY: minY,
-                      maxX: maxX,
-                      maxY: maxY,
+                      // maxX: maxX,
+                      // maxY: maxY,
                     ),
                   ),
                 ),
@@ -155,7 +145,6 @@ class _MyDataPageState extends State<MyDataPage>
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.remove),
                     iconSize: 20,
-                    color: Colors.red,
                     onPressed: () {
                       setState(() {
                         maxX -= 1;
@@ -166,7 +155,6 @@ class _MyDataPageState extends State<MyDataPage>
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.add),
                     iconSize: 20,
-                    color: Colors.green,
                     onPressed: () {
                       setState(() {
                         maxX += 1;
@@ -188,14 +176,12 @@ class _MyDataPageState extends State<MyDataPage>
   SideTitles get bottomTitles => SideTitles(
         showTitles: true,
         reservedSize: 32,
-        interval: 1,
         getTitlesWidget: bottomTitleWidgets,
       );
 
   SideTitles get leftTitles => SideTitles(
         getTitlesWidget: leftTitleWidgets,
         showTitles: true,
-        interval: 1,
         reservedSize: 32,
       );
 

@@ -11,7 +11,7 @@ class SharedData extends ChangeNotifier {
   void simulateDataStream() async {
     for (var i = 0; i < 100; i++) {
       await Future.delayed(const Duration(seconds: 2));
-      _points.add(Point(_points.length, Random().nextDouble() * 10));
+      _points.add(Point(_points.length, Random().nextDouble() * 100));
       notifyListeners(); // This will alert the widgets that are listening to this model.
     }
   }

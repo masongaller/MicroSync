@@ -25,13 +25,11 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.inversePrimary,
         title: Text(appBarTitle),
       ),
       bottomNavigationBar: NavigationBar(
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         onDestinationSelected: _onDestinationSelected,
-        indicatorColor: theme.colorScheme.inversePrimary,
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
           NavigationDestination(

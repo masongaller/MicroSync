@@ -3,6 +3,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+//Graph Tool Tip Tutorial From https://blog.logrocket.com/build-beautiful-charts-flutter-fl-chart/#customizing-tooltip
+
 class MyDataPage extends StatefulWidget {
   const MyDataPage({Key? key}) : super(key: key);
 
@@ -129,6 +131,51 @@ class _MyDataPageState extends State<MyDataPage>
                           top: const BorderSide(color: Colors.transparent),
                         ),
                       ),
+                      lineTouchData: LineTouchData(
+                          enabled: true,
+                          touchTooltipData: LineTouchTooltipData(
+                            tooltipRoundedRadius: 20.0,
+                            showOnTopOfTheChartBoxArea: true,
+                            fitInsideHorizontally: true,
+                            tooltipMargin: 0,
+                            getTooltipItems: (touchedSpots) {
+                              return touchedSpots.map(
+                                (LineBarSpot touchedSpot) {
+                                  const textStyle = TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  );
+                                  return LineTooltipItem(
+                                    "Y: " +
+                                        watchPoints
+                                            .points[touchedSpot.spotIndex].y
+                                            .toStringAsFixed(2) +
+                                        "\nX: " +
+                                        watchPoints
+                                            .points[touchedSpot.spotIndex].x
+                                            .toStringAsFixed(2),
+                                    textStyle,
+                                  );
+                                },
+                              ).toList();
+                            },
+                          ),
+                          getTouchedSpotIndicator:
+                              (LineChartBarData barData, List<int> indicators) {
+                            return indicators.map(
+                              (int index) {
+                                final line = FlLine(
+                                    color: theme.dividerColor,
+                                    strokeWidth: 1,
+                                    dashArray: [2, 4]);
+                                return TouchedSpotIndicatorData(
+                                  line,
+                                  FlDotData(show: false),
+                                );
+                              },
+                            ).toList();
+                          },
+                          getTouchLineEnd: (_, __) => double.infinity),
                       gridData: const FlGridData(show: true),
                       minX: minX,
                       minY: minY,
@@ -191,7 +238,7 @@ class _MyDataPageState extends State<MyDataPage>
       fontSize: 16,
     );
     Widget text;
-    text = Text(value.toInt().toString(), style: style);
+    text = Text(value.toStringAsFixed(1), style: style);
 
     return SideTitleWidget(
       axisSide: meta.axisSide,
@@ -206,7 +253,7 @@ class _MyDataPageState extends State<MyDataPage>
       fontSize: 16,
     );
     String text;
-    text = value.toInt().toString();
+    text = value.toStringAsFixed(0);
 
     return Text(text, style: style, textAlign: TextAlign.center);
   }

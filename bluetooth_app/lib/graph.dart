@@ -1,4 +1,5 @@
 import 'package:bluetooth_app/shareddata.dart';
+import 'package:bluetooth_app/zoomable_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,10 +15,6 @@ class MyDataPage extends StatefulWidget {
 
 class _MyDataPageState extends State<MyDataPage>
     with AutomaticKeepAliveClientMixin<MyDataPage> {
-  double minY = 0;
-  double maxY = 10;
-  double minX = 0;
-  double maxX = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +24,7 @@ class _MyDataPageState extends State<MyDataPage>
     final readPoints = context
         .read<SharedData>(); //To modify the data without rebuilding the widget
 
-    return AspectRatio(
-      aspectRatio: 1.23,
-      child: Stack(
+    return Stack(
         children: <Widget>[
           Column(
             children: <Widget>[
@@ -39,38 +34,10 @@ class _MyDataPageState extends State<MyDataPage>
               Stack(
                 alignment: AlignmentDirectional.centerStart,
                 children: [
-                  Positioned(
-                    bottom: 15,
-                    left: 15,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.add),
-                      iconSize: 20,
-                      onPressed: () {
-                        setState(() {
-                          maxY += 1;
-                        });
-                      },
-                    ),
-                  ),
-                  Positioned(
-                    top: 15,
-                    left: 15,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.remove),
-                      iconSize: 20,
-                      onPressed: () {
-                        setState(() {
-                          maxY -= 1;
-                        });
-                      },
-                    ),
-                  ),
                   Expanded(
                     child: Container(
                       alignment: Alignment.center, // Align text to the center
-                      child: Text(
+                      child: const Text(
                         'Sample Chart',
                         style: TextStyle(
                           fontSize: 32,
@@ -89,126 +56,105 @@ class _MyDataPageState extends State<MyDataPage>
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 16, left: 6),
-                  child: LineChart(
-                    LineChartData(
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: List<FlSpot>.generate(
-                              watchPoints.points.length,
-                              (index) => FlSpot(
-                                  watchPoints.points[index].x.toDouble(),
-                                  watchPoints.points[index].y.toDouble())),
-                          isCurved: true,
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: true),
-                          belowBarData: BarAreaData(show: false),
-                        ),
-                      ],
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: bottomTitles,
-                          axisNameWidget: Text('Axis name'),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: leftTitles,
-                          axisNameWidget: Text('Axis name'),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border(
-                          bottom: BorderSide(
-                              color: theme.dividerColor.withOpacity(0.2),
-                              width: 4),
-                          left: const BorderSide(color: Colors.transparent),
-                          right: const BorderSide(color: Colors.transparent),
-                          top: const BorderSide(color: Colors.transparent),
-                        ),
-                      ),
-                      lineTouchData: LineTouchData(
-                          enabled: true,
-                          touchTooltipData: LineTouchTooltipData(
-                            tooltipRoundedRadius: 20.0,
-                            showOnTopOfTheChartBoxArea: true,
-                            fitInsideHorizontally: true,
-                            tooltipMargin: 0,
-                            getTooltipItems: (touchedSpots) {
-                              return touchedSpots.map(
-                                (LineBarSpot touchedSpot) {
-                                  const textStyle = TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  );
-                                  return LineTooltipItem(
-                                    "Y: " +
-                                        watchPoints
-                                            .points[touchedSpot.spotIndex].y
-                                            .toStringAsFixed(2) +
-                                        "\nX: " +
-                                        watchPoints
-                                            .points[touchedSpot.spotIndex].x
-                                            .toStringAsFixed(2),
-                                    textStyle,
-                                  );
-                                },
-                              ).toList();
-                            },
+                  child: ZoomableChart(
+                    maxX: readPoints.points.length.toDouble() - 1,
+                    builder: (minX, maxX) {
+                      return LineChart(
+                        LineChartData(
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List<FlSpot>.generate(
+                                  watchPoints.points.length,
+                                  (index) => FlSpot(
+                                      watchPoints.points[index].x.toDouble(),
+                                      watchPoints.points[index].y.toDouble())),
+                              isCurved: false,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: true),
+                              belowBarData: BarAreaData(show: false),
+                            ),
+                          ],
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: bottomTitles,
+                              axisNameWidget: Text('Axis name'),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: leftTitles,
+                              axisNameWidget: Text('Axis name'),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
                           ),
-                          getTouchedSpotIndicator:
-                              (LineChartBarData barData, List<int> indicators) {
-                            return indicators.map(
-                              (int index) {
-                                final line = FlLine(
-                                    color: theme.dividerColor,
-                                    strokeWidth: 1,
-                                    dashArray: [2, 4]);
-                                return TouchedSpotIndicatorData(
-                                  line,
-                                  FlDotData(show: false),
-                                );
+                          borderData: FlBorderData(
+                            show: true,
+                            border: Border(
+                              bottom: BorderSide(
+                                  color: theme.dividerColor.withOpacity(0.2),
+                                  width: 4),
+                              left: const BorderSide(color: Colors.transparent),
+                              right:
+                                  const BorderSide(color: Colors.transparent),
+                              top: const BorderSide(color: Colors.transparent),
+                            ),
+                          ),
+                          lineTouchData: LineTouchData(
+                              enabled: false,
+                              touchTooltipData: LineTouchTooltipData(
+                                tooltipRoundedRadius: 20.0,
+                                showOnTopOfTheChartBoxArea: true,
+                                fitInsideHorizontally: true,
+                                tooltipMargin: 0,
+                                getTooltipItems: (touchedSpots) {
+                                  return touchedSpots.map(
+                                    (LineBarSpot touchedSpot) {
+                                      const textStyle = TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      );
+                                      return LineTooltipItem(
+                                        "Y: ${watchPoints
+                                                .points[touchedSpot.spotIndex].y
+                                                .toStringAsFixed(2)}\nX: ${watchPoints
+                                                .points[touchedSpot.spotIndex].x
+                                                .toStringAsFixed(2)}",
+                                        textStyle,
+                                      );
+                                    },
+                                  ).toList();
+                                },
+                              ),
+                              getTouchedSpotIndicator:
+                                  (LineChartBarData barData,
+                                      List<int> indicators) {
+                                return indicators.map(
+                                  (int index) {
+                                    final line = FlLine(
+                                        color: theme.dividerColor,
+                                        strokeWidth: 1,
+                                        dashArray: [2, 4]);
+                                    return TouchedSpotIndicatorData(
+                                      line,
+                                      FlDotData(show: false),
+                                    );
+                                  },
+                                ).toList();
                               },
-                            ).toList();
-                          },
-                          getTouchLineEnd: (_, __) => double.infinity),
-                      gridData: const FlGridData(show: true),
-                      minX: minX,
-                      minY: minY,
-                      // maxX: maxX,
-                      // maxY: maxY,
-                    ),
+                              getTouchLineEnd: (_, __) => double.infinity),
+                          gridData: const FlGridData(show: true),
+                          minX: minX,
+                          minY: 0,
+                          maxX: maxX,
+                          // maxY: maxY,
+                        ),
+                      );
+                    },
                   ),
                 ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.remove),
-                    iconSize: 20,
-                    onPressed: () {
-                      setState(() {
-                        maxX -= 1;
-                      });
-                    },
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.add),
-                    iconSize: 20,
-                    onPressed: () {
-                      setState(() {
-                        maxX += 1;
-                      });
-                    },
-                  ),
-                ],
               ),
               const SizedBox(
                 height: 10,
@@ -216,8 +162,7 @@ class _MyDataPageState extends State<MyDataPage>
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   SideTitles get bottomTitles => SideTitles(
@@ -238,7 +183,7 @@ class _MyDataPageState extends State<MyDataPage>
       fontSize: 16,
     );
     Widget text;
-    text = Text(value.toStringAsFixed(1), style: style);
+    text = Text(value.toStringAsFixed(0), style: style);
 
     return SideTitleWidget(
       axisSide: meta.axisSide,

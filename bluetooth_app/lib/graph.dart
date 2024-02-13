@@ -20,9 +20,9 @@ class _MyDataPageState extends State<MyDataPage>
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     final watchPoints = context.watch<
-        SharedData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+        SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readPoints = context
-        .read<SharedData>(); //To modify the data without rebuilding the widget
+        .read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     return Stack(
         children: <Widget>[

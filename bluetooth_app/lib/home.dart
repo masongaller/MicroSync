@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:bluetooth_app/shareddata.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
 
 //Acknowledgement: https://medium.com/@nandhuraj/exploring-bluetooth-communication-with-flutter-blue-plus-package-3c442d0e6cdb
 //Used this guide to help me setup scanning and connecting to a bluetooth device
@@ -15,65 +17,37 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage>
     with AutomaticKeepAliveClientMixin<MyHomePage> {
-  String _deviceName = "No device connected";
   String _currText = "Scan";
   Icon _currIcon = Icon(Icons.bluetooth_disabled);
-  List<BluetoothDevice> devices = [];
-  late BluetoothDevice _device;
   bool _disconnected = true;
 
-  Future<void> _connectOrDisconnect() async {
+  Future<void> _connectOrDisconnect(readBLE) async {
     // Check if Bluetooth is enabled and on
     bool isBluetoothEnabled = await FlutterBluePlus.isSupported;
-    bool isBluetoothOn = await FlutterBluePlus.isOn;
+    BluetoothAdapterState state = await FlutterBluePlus.adapterState.first;
+    bool isBluetoothOn = state == BluetoothAdapterState.on;
     if (!isBluetoothEnabled || !isBluetoothOn) {
+      readBLE.bluetoothDisabled();
       setState(() {
-        devices = [];
         _currIcon = Icon(Icons.bluetooth_disabled);
-        _deviceName = "No device connected";
         _currText = "Scan";
-        _disconnected = true;
+       
       });
       await _bluetoothAlert();
       return;
     }
 
     // Toggle between connect and disconnect
-    setState(() {
-      if (_currIcon.icon != Icons.bluetooth_disabled) {
+    if (_currIcon.icon != Icons.bluetooth_disabled) {
+      readBLE.disconnectDevice();
+      setState(() {
         _currIcon = Icon(Icons.bluetooth_disabled);
-        _deviceName = "No device connected";
         _currText = "Scan";
-        _disconnected = true;
-        _device.disconnect();
-      }
-    });
+      });
+    }
 
     if (_currIcon.icon != Icons.bluetooth_connected) {
-      // Start scan only when connecting
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
-
-      // Clear the existing devices list
-      setState(() {
-        devices.clear();
-      });
-
-      // Listen to scanResults and add devices to the list
-      FlutterBluePlus.scanResults.listen((results) {
-        for (ScanResult result in results) {
-          if (!devices.contains(result.device)) {
-            setState(() {
-              //Only add devices that are named
-              if (result.device.platformName != "") {
-                devices.add(result.device);
-              }
-            });
-          }
-        }
-      });
-    } else {
-      // Stop scan when disconnecting
-      FlutterBluePlus.stopScan();
+      readBLE.scanForDevices();
     }
   }
 
@@ -106,7 +80,14 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
+    
+    final watchBLE = context.watch<
+        SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+    final readBLE = context.read<
+        SharedBluetoothData>(); //To modify the data without rebuilding the widget
+
     var theme = Theme.of(context);
+
     return Scaffold(
       body: Center(
         child: Column(
@@ -117,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage>
               style: theme.textTheme.titleMedium,
             ),
             Text(
-              '$_deviceName',
+              watchBLE.deviceName,
               style: theme.textTheme.titleMedium,
             ),
             Visibility(
@@ -125,32 +106,21 @@ class _MyHomePageState extends State<MyHomePage>
               child: Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
-                  itemCount: devices.length,
+                  itemCount: watchBLE.devices.length,
                   itemBuilder: (context, index) {
                     return Card(
                         child: ListTile(
                             leading: Icon(Icons.bluetooth),
-                            title: Text(devices[index].platformName.toString()),
-                            subtitle: Text(devices[index].remoteId.toString()),
+                            title: Text(watchBLE.devices[index].platformName
+                                .toString()),
+                            subtitle: Text(
+                                watchBLE.devices[index].remoteId.toString()),
                             trailing: ElevatedButton(
                               onPressed: () async {
-                                // Connect to the selected device
-                                await devices[index].connect();
-                                _device = devices[index];
-                                setState(() {
-                                  if (devices[index].platformName.toString() !=
-                                      "") {
-                                    _deviceName =
-                                        devices[index].platformName.toString();
-                                  } else {
-                                    _deviceName =
-                                        devices[index].remoteId.toString();
-                                  }
-                                  _currIcon = Icon(Icons.bluetooth_connected);
-                                  _currText = "Disconnect";
-                                  _disconnected = false;
-                                });
-                                //readCharacteristic(_device); //code for testing
+                                watchBLE.connectDevice(index);
+                                _currIcon = Icon(Icons.bluetooth_connected);
+                                _currText = "Disconnect";
+                                _disconnected = false;
                               },
                               child: const Text('Connect'),
                             )));
@@ -163,26 +133,11 @@ class _MyHomePageState extends State<MyHomePage>
       ),
       floatingActionButton: FloatingActionButton.extended(
         label: Text(_currText),
-        onPressed: _connectOrDisconnect,
+        onPressed: () {_connectOrDisconnect(readBLE);},
         tooltip: 'Connect Bluetooth Device',
         icon: _currIcon,
       ),
     );
-  }
-
-//Method i was using for testing
-  void readCharacteristic(BluetoothDevice device) async {
-    List<BluetoothDevice> blue = FlutterBluePlus.connectedDevices;
-    List<BluetoothService> services = await device.discoverServices();
-    services.forEach((service) async {
-      // Reads all characteristics
-      var characteristics = service.characteristics;
-      for (BluetoothCharacteristic c in characteristics) {
-        if (c.properties.read) {
-          List<int> value = await c.read();
-        }
-      }
-    });
   }
 
   @override

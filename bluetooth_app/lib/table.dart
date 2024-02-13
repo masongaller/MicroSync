@@ -13,9 +13,9 @@ class _MyTablePageState extends State<MyTablePage>
   @override
   Widget build(BuildContext context) {
     final watchPoints = context.watch<
-        SharedData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+        SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readPoints = context
-        .read<SharedData>(); //To modify the data without rebuilding the widget
+        .read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     return Scaffold(
       body: Center(

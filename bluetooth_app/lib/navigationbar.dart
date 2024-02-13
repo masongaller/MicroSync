@@ -58,7 +58,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         ],
       ),
       body: ChangeNotifierProvider(
-        create: (context) => SharedData(),
+        create: (context) => SharedBluetoothData(),
         child: PageView(
           controller: _pageController,
           onPageChanged: _onPageChanged,

@@ -148,6 +148,12 @@ class SharedBluetoothData extends ChangeNotifier {
   int? _bytesProcessed;
   int? get bytesProcessed => _bytesProcessed;
 
+  List<String> _headers = [];
+  List<String> get headers => _headers;
+
+  int? _indexOfTime;
+  int? get indexOfTime => _indexOfTime;
+
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
   /// @returns Rows from start (inclusive) to end (inclusive) (do NOT mutate data)
@@ -292,7 +298,7 @@ class SharedBluetoothData extends ChangeNotifier {
       // onValueReceived is updated:
       //   - anytime read() is called
       //   - anytime a notification arrives (if subscribed)
-      onSecurity();
+      onSecurity;
     });
 
     // cleanup: cancel subscription when disconnected
@@ -320,13 +326,13 @@ class SharedBluetoothData extends ChangeNotifier {
     _mbRebootTime = DateTime.now().millisecondsSinceEpoch - msTime;
 
     final subscription = dataChar?.onValueReceived.listen((value) {
-      onData();
+      onData;
     });
     device.cancelWhenDisconnected(subscription!);
     await dataChar?.setNotifyValue(true);
 
     final subscription2 = usageChar?.onValueReceived.listen((value) {
-      onUsage();
+      onUsage;
     });
     device.cancelWhenDisconnected(subscription2!);
     await usageChar?.setNotifyValue(true);
@@ -334,7 +340,7 @@ class SharedBluetoothData extends ChangeNotifier {
     // Enabling notifications will get the current length;
     // Getting the current length will retrieve all "new" data since the last retrieve
     final subscription3 = dataLenChar?.onValueReceived.listen((value) {
-      onDataLength();
+      onDataLength;
     });
     device.cancelWhenDisconnected(subscription3!);
     await dataLenChar?.setNotifyValue(true);
@@ -364,17 +370,475 @@ class SharedBluetoothData extends ChangeNotifier {
     notifyListeners();
   }
 
-  void onData() {}
+  /// Refresh (reload) all data from micro:bit (removes all local data)
+  void refreshData() {
+    _rawData = [];
+    _dataLength = 0;
+    _bytesProcessed = 0; // Reset to the beginning of processing
+    discardRetrieveQueue(); // Clear any pending requests
 
-  void onUsage() {}
+    _bytesProcessed = 0;
+    _headers = [];
+    _indexOfTime = 0;
+    _fullHeaders = [];
+    _rows = [];
 
-  void onDataLength() {}
+    /**
+   * @event graph-cleared
+   * @type {object}
+   * @property {uBit} detail.device The device that clear all data (completed an erase at some time)
+   */
+    notifyListeners();
+  }
 
-  void onDisconnect() {}
+  ///
+  /// @param {event} event The event data
+  /// @private
+  void onDataLength(dynamic event) {
+    // Updated length / new data
+    int length = event.target.value.getUint32(0, Endian.little);
+    // print('New Length: $length (was ${this.dataLength})');
 
-  void onSecurity() {}
+    // If there's new data, update
+    if (dataLength != length) {
+      // Probably erased. Retrieve it all
+      if (length < dataLength) {
+        print('Log smaller than expected. Retrieving all data');
+        refreshData();
+      }
 
-  void disconnected() {}
+      // Get the index of the last known value (since the last update)
+      // floor(n/16) = index of the last full segment
+      // ceil(n/16) = index of the last segment total (or count of total segments)
+      int lastIndex =
+          (dataLength / 16).floor(); // Index of first non-full segment
+      int totalSegments = (length / 16).ceil(); // Total segments now
+      _dataLength = length;
+      // Retrieve checks dataLength; Must update it first;
+      retrieveChunk(
+          lastIndex, totalSegments - lastIndex, onConnectionSyncCompleted);
+    }
+  }
+
+  /// Update data with wall clock time.
+  /// @private
+  void processTime() {
+    // Add in clock times (if possible)
+    // print('Adding times');
+    if (firstConnectionUpdate == false && indexOfTime != -1) {
+      int start = rows.length - 1;
+      // print('Start: $start');
+      // Valid index, wtc time is null
+      while (start >= 0 && rows[start][2] == null) {
+        // Until a "Reboot" or another time is set
+        int sampleTime =
+            mbRebootTime! + ((rows[start][3] as int) * 1000).round();
+        String timeString = DateTime.fromMillisecondsSinceEpoch(sampleTime)
+            .toUtc()
+            .toIso8601String();
+        // print('Setting time for row $start to $timeString');
+        rows[start][2] = timeString as int;
+        updatedRow(start);
+        // Don't update rows before "Reboot"
+        if (rows[start][1] != null) {
+          break;
+        }
+        start--;
+      }
+    }
+  }
+
+  /// Post event to indicate a row of data has changed or been added
+  /// @private
+  updatedRow(rowIndex) {
+    /** 
+        * @event row-updated
+        * @type {object}
+        * @property {uBit} detail.device The device that has an update on a row of data
+        * @property {int} detail.row the index of the row that has been updated (may be a new row)
+        * @property {string[]} detail.data the current data for the row
+        * @property {headers[]} detail.headers the headers for the row (same order as data)
+        */
+    notifyListeners();
+  }
+
+  /// A block of data is ready to be parsed
+  /// @private
+  void parseData() {
+    // print('parseData');
+
+    // Bytes processed always ends on a newline
+    int index = (bytesProcessed! / 16).floor();
+    int offset = bytesProcessed! % 16;
+
+    String partialItem = rawData[index].substring(offset);
+    String mergedData = partialItem + rawData.sublist(index + 1).join('');
+
+    // print('mergedData: $mergedData');
+    List<String> lines = mergedData.split('\n');
+    int startRow = rows.length;
+
+    // Discard the last / partial line
+    lines.removeLast();
+
+    for (String line in lines) {
+      if (line == '0') {
+        // Single 0 is reboot
+        // print('Reboot');
+        _nextDataAfterReboot = true;
+      } else if (line.contains('Time')) {
+        // Header: Time header found
+        // print('Header: $line');
+        List<String> parts = line.split(',');
+
+        if (parts.length != headers.length) {
+          // New Header!
+          _headers = parts;
+          _indexOfTime =
+              parts.indexWhere((element) => element.contains('Time'));
+
+          _fullHeaders = [
+            'Microbit Label',
+            'Reboot Before Data',
+            'Time (local)'
+          ];
+
+          if (indexOfTime == -1) {
+            fullHeaders.addAll(parts);
+          } else {
+            // Time then data
+            fullHeaders.add(parts[indexOfTime!]);
+            fullHeaders.addAll(parts.sublist(0, indexOfTime));
+            fullHeaders.addAll(parts.sublist(indexOfTime! + 1));
+          }
+
+          // print('Full Headers now: $fullHeaders');
+          /**
+         * @event headers-updated
+         * @type {object}
+         * @property {uBit} detail.device The device that has an update on the headers
+         * @property {List<String>} detail.headers the new headers for the device
+         */
+          notifyListeners();
+        }
+      } else {
+        List<String> parts = line.split(',');
+
+        if (parts.length < headers.length) {
+          print('Invalid line: $line $bytesProcessed');
+        } else {
+          String? time = null;
+
+          if (indexOfTime != -1) {
+            time = parts[indexOfTime!];
+          }
+
+          parts = List<String>.from(parts.sublist(0, indexOfTime)
+            ..addAll(parts.sublist(indexOfTime! + 1)));
+
+          // name, reboot, local time, time, data...
+          List<dynamic> newRow = [
+            getLabel(),
+            nextDataAfterReboot ? 'true' : null,
+            null,
+            time,
+            ...parts
+          ];
+
+          // print('New Row: $newRow');
+          rows.add(newRow);
+          _nextDataAfterReboot = false;
+        }
+      }
+    }
+
+    processTime();
+
+    // If we've already done the first connection...
+    if (firstConnectionUpdate == false) {
+      notifyDataReady();
+    }
+
+    // Advance by total contents of lines and newlines
+    _bytesProcessed = _bytesProcessed! +
+        lines.length +
+        lines.fold<int>(0, (a, b) => a + b.length);
+
+    // Notify any listeners
+    for (int i = startRow; i < rows.length; i++) {
+      updatedRow(i);
+    }
+  }
+
+  /// Callback when a security message is received
+  /// @param {event}} event The BLE security data
+  /// @private
+  void onSecurity(dynamic event) {
+    int value = event.target.value.getUint8();
+
+    if (value != 0) {
+      onAuthorized();
+    } else {
+      if (password != null && passwordAttempts == 0) {
+        // If we're on the first connect and we have a stored password, try it
+        sendAuthorization(password!);
+        _passwordAttempts++;
+      } else {
+        // Need a password or password didn't work
+        /**
+       * @event unauthorized
+       * @type {object}
+       * @property {uBit} detail.device The device that is not authorized (must provide a valid password to use the device. See {@link uBit#sendAuthorization})
+       */
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Start the next data request (if there is one pending)
+  /// @private
+  void startNextRetrieve() {
+    // If there's another one queued up, start it
+    if (retrieveQueue.isNotEmpty) {
+      // Request the next chunk
+      var nextRetrieve = retrieveQueue[0];
+      requestSegment(nextRetrieve.start, nextRetrieve.segments.length);
+
+      // Post the progress of the next transaction
+      if (nextRetrieve.progress >= 0) {
+        notifyDataProgress(nextRetrieve.progress);
+      }
+    }
+  }
+
+  /// Initial data request on connection (or reconnect) is done (or at least being checked)
+  /// @private
+  void onConnectionSyncCompleted() {
+    if (firstConnectionUpdate) {
+      // print('onConnectionSyncCompleted');
+      _firstConnectionUpdate = false;
+      processTime();
+      notifyDataReady();
+
+      // // PERFORMANCE CHECKING
+      // retrieveStopTime = DateTime.now().millisecondsSinceEpoch;
+      // int delta = retrieveStopTime - retrieveStartTime;
+      // double rate = dataTransferred / delta * 1000;
+      // print('Final Packet;  Elapsed time: $delta $dataTransferred Rate: $rate bytes/s');
+    }
+  }
+
+  /// Process the data from a retrieveTask that has completed (all data available)
+  /// @param {retrieveTask} retrieve The retrieve task to try to check/process
+  /// @private
+  void processChunk(RetrieveTask retrieve) {
+    // If the final packet and we care about progress, send completion notification
+    // print('processChunk: ${retrieve.progress} ${retrieve.final} ${retrieve.success} ${retrieve.segments.length}');
+    if (retrieve.progress >= 0 && retrieve.finalTask) {
+      notifyDataProgress(100);
+    }
+
+    // Pop off the retrieval task
+    retrieveQueue.removeAt(0);
+
+    // Start the next one (if any)
+    startNextRetrieve();
+
+    // Copy data from this to raw data
+    for (int i = 0; i < retrieve.segments.length; i++) {
+      if (retrieve.segments[i] == null) {
+        print('ERROR: Null segment: $i');
+      }
+      rawData[retrieve.start + i] = retrieve.segments[i];
+    }
+    parseData();
+
+    // If we're done with the entire transaction, call the completion handler if one
+    if (retrieve.success != null) {
+      retrieve.success!();
+    }
+  }
+
+  /// A retrieveTask is done.  Check to see if it's complete and ready for processing (if not, make more requests)
+  /// @private
+  void checkChunk() {
+    // print('checkChunk');
+    if (retrieveQueue.isEmpty) {
+      print('No retrieve queue');
+      return;
+    }
+
+    var retrieve = retrieveQueue[0];
+
+    // If done
+    if (retrieve.processed == retrieve.segments.length) {
+      processChunk(retrieve);
+    } else {
+      // Advance to the next missing packet
+      while (retrieve.processed < retrieve.segments.length &&
+          retrieve.segments[retrieve.processed] != null) {
+        retrieve.processed = retrieve.processed + 1;
+      }
+
+      // If there's a non-set segment, request it
+      if (retrieve.processed < retrieve.segments.length) {
+        // Identify the run length of the missing piece(s)
+        int length = 1;
+
+        while (retrieve.processed + length < retrieve.segments.length &&
+            retrieve.segments[retrieve.processed + length] == null) {
+          length++;
+        }
+
+        // print('Re-Requesting ${retrieve.start + retrieve.processed} for $length');
+        // Request them
+        requestSegment(retrieve.start + retrieve.processed, length);
+      } else {
+        // No missing segments. Process it
+        processChunk(retrieve);
+      }
+    }
+  }
+
+  /// Process the data notification from the device
+  /// @param {event} event BLE data event is available
+  /// @private
+  void onData(dynamic event) {
+    // Stop any timer from running
+    clearDataTimeout();
+
+    // If we're not trying to get data, ignore it
+    if (retrieveQueue.isEmpty) {
+      return;
+    }
+
+    // First four bytes are index/offset this is in reply to...
+    var dv = event.target.value;
+
+    // // PERFORMANCE CHECKING
+    // dataTransferred += dv.byteLength;
+
+    if (dv.byteLength >= 4) {
+      var index = dv.getUint32(0, Endian.little);
+
+      var text = '';
+      for (var i = 4; i < dv.byteLength; i++) {
+        var val = dv.getUint8(i);
+        if (val != 0) {
+          text += String.fromCharCode(val);
+        }
+      }
+
+      // print('Text at $index: $text');
+      // print('Hex: ${showHex(dv)}');
+
+      var retrieve = retrieveQueue[0];
+
+      // if (Random().nextDouble() < 0.01) {
+      //   print('Dropped Packet');
+      // } else {
+      var segmentIndex = ((index / 16) - retrieve.start).toInt();
+      // print('Index: $index Start: ${retrieve.start}  index: $segmentIndex');
+      if (segmentIndex == retrieve.processed) retrieve.processed++;
+
+      if (retrieve.segments[segmentIndex] != null) {
+        print(
+            'ERROR:  Segment already set $segmentIndex: "${retrieve.segments[segmentIndex]}" "$text" ');
+        if (retrieve.segments[segmentIndex].length != text.length &&
+            retrieve.segments[segmentIndex] != text) {
+          print('Segment is ok (duplicate / overlap)');
+        } else {
+          print('Duplicate segment');
+        }
+      }
+      if (segmentIndex >= 0 && segmentIndex < retrieve.segments.length) {
+        retrieve.segments[segmentIndex] = text;
+      } else {
+        print(
+            'ERROR:  Segment out of range $segmentIndex (max ${retrieve.segments.length}');
+      }
+      // }  // END Dropped packet test
+
+      // Not done:  Set the timeout
+      setDataTimeout();
+    } else if (event.target.value.byteLength == 0) {
+      // Done: Do the check / processing (timer already canceled)
+      // print('Terminal packet.');
+      // if (Random().nextDouble() < 0.10) {
+      checkChunk();
+      // } else {
+      //   // Simulate timeout
+      //   print('Dropped terminal packet');
+      //   setDataTimeout();
+      // }
+    } else {
+      print('ERROR:  Unexpected data length ${event.target.value.byteLength}');
+    }
+  }
+
+  /// Process an update on the BLE usage characteristics
+  ///
+  /// @param {event} event The BLE event useage data
+  /// @private
+  void onUsage(dynamic event) {
+    var value = event.target.value.getUint16(0, Endian.little) / 10.0;
+    /** 
+    * @event log-usage
+    * @type {object}
+    * @property {uBit} detail.device The device that has an update on progress
+    * @property {double} detail.percent Percent of space currently in use [0.0-100.0]
+    */
+    notifyListeners();
+  }
+
+  void onDisconnect() {
+    device.disconnect();
+    disconnected();
+    /** 
+  * @event disconnected
+  * @type {object}
+  * @property {uBit} detail.device The device that has disconnected
+  */
+    notifyListeners();
+  }
+
+  int getLabel() {
+    return 1;
+  }
+
+  /// Discard any pending retrieve tasks (and mark any in-progress as complete)
+  /// @private
+  void discardRetrieveQueue() {
+    // If there's a transfer in-progress, notify it is completed
+    if (retrieveQueue.isNotEmpty && retrieveQueue[0].progress >= 0) {
+      notifyDataProgress(100);
+    }
+    retrieveQueue.clear();
+  }
+
+  /// Update state variables for a disconnected state
+  /// @private
+  void disconnected() {
+    _device = BluetoothDevice(remoteId: 0 as DeviceIdentifier);
+    _service = BluetoothService.fromProto(0 as BmBluetoothService);
+    _chars = [];
+    // Individual characteristics
+    _securityChar = null;
+    _passphraseChar = null;
+    _dataLenChar = null;
+    _dataChar = null;
+    _dataReqChar = null;
+    _eraseChar = null;
+    _usageChar = null;
+    _timeChar = null;
+    // Update data to reflect what we actually have
+    _dataLength = rawData.length > 1 ? (rawData.length - 1) * 16 : 0;
+
+    discardRetrieveQueue();
+
+    _mbRebootTime = null;
+    clearDataTimeout();
+  }
 
   void disconnectDevice() {
     _device.disconnect();
@@ -411,8 +875,6 @@ class SharedBluetoothData extends ChangeNotifier {
       checkChunk();
     }
   }
-
-  checkChunk() {}
 
   /// Do a BLE request for the data (to be streamed)
   /// @param {int} start 16-byte aligned start index (actual data index is "start*16")
@@ -493,8 +955,6 @@ class SharedBluetoothData extends ChangeNotifier {
       startNextRetrieve();
     }
   }
-
-  startNextRetrieve() {}
 
   Timer setTimeout(callback, [int duration = 1000]) {
     return Timer(Duration(milliseconds: duration), callback);

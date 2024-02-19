@@ -39,15 +39,15 @@ class _MyHomePageState extends State<MyHomePage>
 
     // Toggle between connect and disconnect
     if (_currIcon.icon != Icons.bluetooth_disabled) {
-      readBLE.disconnectDevice();
+      readBLE.onDisconnect();
       setState(() {
         _currIcon = Icon(Icons.bluetooth_disabled);
         _currText = "Scan";
       });
     }
-
-    if (_currIcon.icon != Icons.bluetooth_connected) {
+    else {
       readBLE.scanForDevices();
+      _disconnected = true;
     }
   }
 

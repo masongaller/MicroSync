@@ -47,21 +47,9 @@ class RetrieveTask {
 }
 
 class SharedBluetoothData extends ChangeNotifier {
-  final List<Point> _points = [];
+  //TODO: Remove this after refactor
+  List<Point> _points = [];
   List<Point> get points => _points;
-
-  // simulate a data source
-  void simulateDataStream() async {
-    for (var i = 0; i < 100; i++) {
-      await Future.delayed(const Duration(seconds: 2));
-      _points.add(Point(_points.length, Random().nextDouble() * 100));
-      notifyListeners(); // This will alert the widgets that are listening to this model.
-    }
-  }
-
-  void addPoint() {
-    simulateDataStream();
-  }
 
   BluetoothCharacteristic? _securityChar;
   BluetoothCharacteristic? get securityChar => _securityChar;
@@ -87,8 +75,8 @@ class SharedBluetoothData extends ChangeNotifier {
   BluetoothCharacteristic? _timeChar;
   BluetoothCharacteristic? get timeChar => _timeChar;
 
-  late BluetoothDevice _device;
-  BluetoothDevice get device => _device;
+  late BluetoothDevice? _device;
+  BluetoothDevice? get device => _device;
 
   final List<BluetoothDevice> _devices = [];
   List<BluetoothDevice> get devices => _devices;
@@ -120,9 +108,8 @@ class SharedBluetoothData extends ChangeNotifier {
   List<BluetoothCharacteristic> _chars = [];
   List<BluetoothCharacteristic> get chars => _chars;
 
-  BluetoothService _service =
-      BluetoothService.fromProto(0 as BmBluetoothService);
-  BluetoothService get service => _service;
+  BluetoothService? _service;
+  BluetoothService? get service => _service;
 
   int _passwordAttempts = 0;
   int get passwordAttempts => _passwordAttempts;
@@ -145,8 +132,8 @@ class SharedBluetoothData extends ChangeNotifier {
   int? _mbRebootTime;
   int? get mbRebootTime => _mbRebootTime;
 
-  int? _bytesProcessed;
-  int? get bytesProcessed => _bytesProcessed;
+  int _bytesProcessed = 0;
+  int get bytesProcessed => _bytesProcessed;
 
   List<String> _headers = [];
   List<String> get headers => _headers;
@@ -183,7 +170,7 @@ class SharedBluetoothData extends ChangeNotifier {
   /// Request an erase (if connected & authorized)
   void sendErase() {
     // print('sendErase');
-    if (device != null && device.isConnected) {
+    if (device != null && device!.isConnected) {
       var dv = ByteData(5);
       var i = 0;
       for (var c in 'ERASE'.codeUnits) {
@@ -200,7 +187,7 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @param {string} password The password to send
   void sendAuthorization(String password) {
     // print('sendAuthorization: $password');
-    if (device != null && device.isConnected) {
+    if (device != null && device!.isConnected) {
       var dv = ByteData(password.length);
       var i = 0;
       for (var c in password.runes) {
@@ -213,7 +200,7 @@ class SharedBluetoothData extends ChangeNotifier {
 
   void connectDevice(index) async {
     _device = devices[index];
-    await _device.connect();
+    await _device!.connect();
 
     if (devices[index].platformName.toString() != "") {
       _deviceName = devices[index].platformName.toString();
@@ -229,7 +216,7 @@ class SharedBluetoothData extends ChangeNotifier {
   }
 
   Future<void> initializeServicesAndCharacteristics() async {
-    List<BluetoothService> services = await device.discoverServices();
+    List<BluetoothService> services = await device!.discoverServices();
 
     services =
         services.where((u) => u.serviceUuid.toString() == serviceUUID).toList();
@@ -238,7 +225,7 @@ class SharedBluetoothData extends ChangeNotifier {
       BluetoothService service = services.first;
       List<BluetoothCharacteristic> chars = service.characteristics.toList();
 
-      await onConnect(service, chars, device);
+      await onConnect(service, chars, device!);
     }
   }
 
@@ -262,10 +249,31 @@ class SharedBluetoothData extends ChangeNotifier {
 
     chars.forEach((element) {
       String? charName = serviceCharacteristics[element.uuid.toString()];
-      if (charName != null) {
-        (this as dynamic)[charName] = element;
-      } else {
-        print('Char not found: ${element.uuid}');
+      switch (charName) {
+        case "securityChar":
+          _securityChar = element;
+          break;
+        case "passphraseChar":
+          _passphraseChar = element;
+          break;
+        case "dataLenChar":
+          _dataLenChar = element;
+          break;
+        case "dataChar":
+          _dataChar = element;
+          break;
+        case "dataReqChar":
+          _dataReqChar = element;
+          break;
+        case "eraseChar":
+          _eraseChar = element;
+          break;
+        case "usageChar":
+          _usageChar = element;
+          break;
+        case "timeChar":
+          _timeChar = element;
+          break;
       }
     });
 
@@ -298,7 +306,7 @@ class SharedBluetoothData extends ChangeNotifier {
       // onValueReceived is updated:
       //   - anytime read() is called
       //   - anytime a notification arrives (if subscribed)
-      onSecurity;
+      onSecurity(value);
     });
 
     // cleanup: cancel subscription when disconnected
@@ -326,23 +334,23 @@ class SharedBluetoothData extends ChangeNotifier {
     _mbRebootTime = DateTime.now().millisecondsSinceEpoch - msTime;
 
     final subscription = dataChar?.onValueReceived.listen((value) {
-      onData;
+      onData(value);
     });
-    device.cancelWhenDisconnected(subscription!);
+    device!.cancelWhenDisconnected(subscription!);
     await dataChar?.setNotifyValue(true);
 
     final subscription2 = usageChar?.onValueReceived.listen((value) {
-      onUsage;
+      onUsage(value);
     });
-    device.cancelWhenDisconnected(subscription2!);
+    device!.cancelWhenDisconnected(subscription2!);
     await usageChar?.setNotifyValue(true);
 
     // Enabling notifications will get the current length;
     // Getting the current length will retrieve all "new" data since the last retrieve
     final subscription3 = dataLenChar?.onValueReceived.listen((value) {
-      onDataLength;
+      onDataLength(value);
     });
-    device.cancelWhenDisconnected(subscription3!);
+    device!.cancelWhenDisconnected(subscription3!);
     await dataLenChar?.setNotifyValue(true);
   }
 
@@ -351,8 +359,8 @@ class SharedBluetoothData extends ChangeNotifier {
     removeDevice(id);
 
     // If connected, disconnect
-    if (device != null && device.isConnected) {
-      disconnectDevice();
+    if (device != null && device!.isConnected) {
+      onDisconnect();
     }
 
     // Discard any data, etc.
@@ -396,7 +404,14 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @private
   void onDataLength(dynamic event) {
     // Updated length / new data
-    int length = event.target.value.getUint32(0, Endian.little);
+
+    int valLow = event[0];
+    int valMed1 = event[1];
+    int valMed2 = event[2];
+    int valHigh = event[3];
+
+    int length = (valHigh << 24) | (valMed2 << 16) | (valMed1 << 8) | valLow;
+
     // print('New Length: $length (was ${this.dataLength})');
 
     // If there's new data, update
@@ -437,10 +452,10 @@ class SharedBluetoothData extends ChangeNotifier {
             .toUtc()
             .toIso8601String();
         // print('Setting time for row $start to $timeString');
-        rows[start][2] = timeString as int;
+        rows[start][2] = timeString;
         updatedRow(start);
         // Don't update rows before "Reboot"
-        if (rows[start][1] != null) {
+        if (rows[start][1] != 'false') {
           break;
         }
         start--;
@@ -527,10 +542,12 @@ class SharedBluetoothData extends ChangeNotifier {
         if (parts.length < headers.length) {
           print('Invalid line: $line $bytesProcessed');
         } else {
-          String? time = null;
+          double? time = null;
+          int? intTime = null;
 
           if (indexOfTime != -1) {
-            time = parts[indexOfTime!];
+            time = double.parse(parts[indexOfTime!]);
+            intTime = time.floor() ~/ 60;
           }
 
           parts = List<String>.from(parts.sublist(0, indexOfTime)
@@ -538,10 +555,10 @@ class SharedBluetoothData extends ChangeNotifier {
 
           // name, reboot, local time, time, data...
           List<dynamic> newRow = [
-            getLabel(),
-            nextDataAfterReboot ? 'true' : null,
-            null,
-            time,
+            getLabel().toString(),
+            nextDataAfterReboot ? 'true' : 'false',
+            "null",
+            intTime,
             ...parts
           ];
 
@@ -574,7 +591,7 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @param {event}} event The BLE security data
   /// @private
   void onSecurity(dynamic event) {
-    int value = event.target.value.getUint8();
+    int value = event[0];
 
     if (value != 0) {
       onAuthorized();
@@ -649,7 +666,8 @@ class SharedBluetoothData extends ChangeNotifier {
       if (retrieve.segments[i] == null) {
         print('ERROR: Null segment: $i');
       }
-      rawData[retrieve.start + i] = retrieve.segments[i];
+      _rawData.add(retrieve.segments[i]);
+      //rawData[retrieve.start + i] = retrieve.segments[i];
     }
     parseData();
 
@@ -713,17 +731,16 @@ class SharedBluetoothData extends ChangeNotifier {
     }
 
     // First four bytes are index/offset this is in reply to...
-    var dv = event.target.value;
-
+    var dv = event;
+ 
     // // PERFORMANCE CHECKING
     // dataTransferred += dv.byteLength;
 
-    if (dv.byteLength >= 4) {
-      var index = dv.getUint32(0, Endian.little);
-
+    if (dv.length >= 4) {
+      var index = dv[0] | (dv[1] << 8) | (dv[2] << 16) | (dv[3] << 24);
       var text = '';
-      for (var i = 4; i < dv.byteLength; i++) {
-        var val = dv.getUint8(i);
+      for (var i = 4; i < dv.length; i++) {
+        var val = dv[i];
         if (val != 0) {
           text += String.fromCharCode(val);
         }
@@ -761,7 +778,7 @@ class SharedBluetoothData extends ChangeNotifier {
 
       // Not done:  Set the timeout
       setDataTimeout();
-    } else if (event.target.value.byteLength == 0) {
+    } else if (event.length == 0) {
       // Done: Do the check / processing (timer already canceled)
       // print('Terminal packet.');
       // if (Random().nextDouble() < 0.10) {
@@ -772,27 +789,29 @@ class SharedBluetoothData extends ChangeNotifier {
       //   setDataTimeout();
       // }
     } else {
-      print('ERROR:  Unexpected data length ${event.target.value.byteLength}');
+      print('ERROR:  Unexpected data length ${event.length}');
     }
   }
 
   /// Process an update on the BLE usage characteristics
+  /// Prints the usage data to the console
+  /// Percent of device space currently in use [0.0-100.0]
+  /// 10 times the percentage of log currently in use (uint16_t from [0-1000], where 1000=100.0).
   ///
   /// @param {event} event The BLE event useage data
   /// @private
   void onUsage(dynamic event) {
-    var value = event.target.value.getUint16(0, Endian.little) / 10.0;
-    /** 
-    * @event log-usage
-    * @type {object}
-    * @property {uBit} detail.device The device that has an update on progress
-    * @property {double} detail.percent Percent of space currently in use [0.0-100.0]
-    */
+    int lowByte = event[0];
+    int highByte = event[1];
+    int val = (highByte << 8) | lowByte;
+    print('Usage: ${val / 10}%');
     notifyListeners();
   }
 
   void onDisconnect() {
-    device.disconnect();
+    device!.disconnect();
+    _deviceName = "No device connected";
+    _disconnectedBool = true;
     disconnected();
     /** 
   * @event disconnected
@@ -819,8 +838,8 @@ class SharedBluetoothData extends ChangeNotifier {
   /// Update state variables for a disconnected state
   /// @private
   void disconnected() {
-    _device = BluetoothDevice(remoteId: 0 as DeviceIdentifier);
-    _service = BluetoothService.fromProto(0 as BmBluetoothService);
+    _device = null;
+    _service = null;
     _chars = [];
     // Individual characteristics
     _securityChar = null;
@@ -838,13 +857,6 @@ class SharedBluetoothData extends ChangeNotifier {
 
     _mbRebootTime = null;
     clearDataTimeout();
-  }
-
-  void disconnectDevice() {
-    _device.disconnect();
-    _deviceName = "No device connected";
-    _disconnectedBool = true;
-    notifyListeners();
   }
 
   /// Clear the "onData" timeout
@@ -882,11 +894,11 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @private
   Future<void> requestSegment(int start, int length) async {
     // print('requestSegment: Requesting @ $start $length *16 bytes');
-    if (device != null && device.isConnected) {
+    if (device != null && device!.isConnected) {
       var dv = ByteData(8);
       dv.setUint32(0, start * 16, Endian.little);
       dv.setUint32(4, length * 16, Endian.little);
-      await dataReqChar?.write(dv.buffer.asUint8List());
+      await dataReqChar?.write(dv.buffer.asUint8List(), withoutResponse: true);
       clearDataTimeout();
       setDataTimeout();
     }
@@ -989,19 +1001,5 @@ class SharedBluetoothData extends ChangeNotifier {
     _deviceName = "No device connected";
     _disconnectedBool = true;
     notifyListeners();
-  }
-
-  void readCharacteristic(BluetoothDevice device) async {
-    List<BluetoothDevice> blue = FlutterBluePlus.connectedDevices;
-    List<BluetoothService> services = await device.discoverServices();
-    services.forEach((service) async {
-      // Reads all characteristics
-      var characteristics = service.characteristics;
-      for (BluetoothCharacteristic c in characteristics) {
-        if (c.properties.read) {
-          List<int> value = await c.read();
-        }
-      }
-    });
   }
 }

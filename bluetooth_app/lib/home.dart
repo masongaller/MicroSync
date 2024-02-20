@@ -22,33 +22,44 @@ class _MyHomePageState extends State<MyHomePage>
   bool _disconnected = true;
 
   Future<void> _connectOrDisconnect(readBLE) async {
-    // Check if Bluetooth is enabled and on
-    bool isBluetoothEnabled = await FlutterBluePlus.isSupported;
-    BluetoothAdapterState state = await FlutterBluePlus.adapterState.first;
-    bool isBluetoothOn = state == BluetoothAdapterState.on;
-    if (!isBluetoothEnabled || !isBluetoothOn) {
-      readBLE.bluetoothDisabled();
-      setState(() {
-        _currIcon = Icon(Icons.bluetooth_disabled);
-        _currText = "Scan";
-       
-      });
-      await _bluetoothAlert();
-      return;
-    }
+    bool isBluetoothSupported = await FlutterBluePlus.isSupported;
 
-    // Toggle between connect and disconnect
+    var subscription =
+        FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
+      if (state == BluetoothAdapterState.on) {
+        if (isBluetoothSupported) {
+          _handleBluetoothOn(readBLE);
+        } else {
+          _handleBluetoothOff(readBLE);
+        }
+      } else {
+        _handleBluetoothOff(readBLE);
+      }
+    });
+  }
+
+  void _handleBluetoothOn(readBLE) {
     if (_currIcon.icon != Icons.bluetooth_disabled) {
       readBLE.onDisconnect();
-      setState(() {
-        _currIcon = Icon(Icons.bluetooth_disabled);
-        _currText = "Scan";
-      });
-    }
-    else {
+    } else {
       readBLE.scanForDevices();
       _disconnected = true;
     }
+    _updateUI(Icons.bluetooth_disabled, "Scan");
+  }
+
+  void _handleBluetoothOff(readBLE) async {
+    readBLE.bluetoothDisabled();
+    _updateUI(Icons.bluetooth_disabled, "Scan");
+
+    await _bluetoothAlert();
+  }
+
+  void _updateUI(IconData icon, String text) {
+    setState(() {
+      _currIcon = Icon(icon);
+      _currText = text;
+    });
   }
 
   Future<void> _bluetoothAlert() async {
@@ -80,7 +91,6 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
-    
     final watchBLE = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readBLE = context.read<
@@ -133,7 +143,9 @@ class _MyHomePageState extends State<MyHomePage>
       ),
       floatingActionButton: FloatingActionButton.extended(
         label: Text(_currText),
-        onPressed: () {_connectOrDisconnect(readBLE);},
+        onPressed: () {
+          _connectOrDisconnect(readBLE);
+        },
         tooltip: 'Connect Bluetooth Device',
         icon: _currIcon,
       ),

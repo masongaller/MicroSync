@@ -1,3 +1,4 @@
+import 'package:bluetooth_app/enumerator.dart';
 import 'package:bluetooth_app/shareddata.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -35,16 +36,13 @@ class _MyTablePageState extends State<MyTablePage>
                     ),
                   ),
                 ),
-                rows: List<DataRow>.generate(
-                  watchPoints.rows.length,
-                  (int index) => DataRow(
-                    cells: <DataCell>[
-                      DataCell(Text(watchPoints.rows[index][3].toString())),
-                      DataCell(Text(watchPoints.rows[index][4].toString())),
-                      DataCell(Text(watchPoints.rows[index][5].toString())),
-                    ],
-                  ),
-                ),
+                rows: watchPoints.rows.map((rowData) {
+                  return DataRow(
+                    cells: rowData.skip(3).map((cellData) {
+                      return DataCell(Text(cellData.toString()));
+                    }).toList(),
+                  );
+                }).toList(),
               ),
             ],
           )),
@@ -55,7 +53,7 @@ class _MyTablePageState extends State<MyTablePage>
         body: Center(
           child: Text(
             'No Data Yet!',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
       );

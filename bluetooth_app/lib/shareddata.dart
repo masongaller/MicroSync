@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:bluetooth_app/graph.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -141,6 +142,12 @@ class SharedBluetoothData extends ChangeNotifier {
   int? _indexOfTime;
   int? get indexOfTime => _indexOfTime;
 
+  int _largestTime = -1;
+  int get largestTime => _largestTime;
+
+  int _prevTime = -1;
+  int get prevTime => _prevTime;
+
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
   /// @returns Rows from start (inclusive) to end (inclusive) (do NOT mutate data)
@@ -176,7 +183,7 @@ class SharedBluetoothData extends ChangeNotifier {
       for (var c in 'ERASE'.codeUnits) {
         dv.setUint8(i++, c);
       }
-      eraseChar?.write(dv.buffer.asUint8List());
+      eraseChar?.write(dv.buffer.asUint8List(), withoutResponse: true);
     }
   }
 
@@ -486,6 +493,12 @@ class SharedBluetoothData extends ChangeNotifier {
     int index = (bytesProcessed! / 16).floor();
     int offset = bytesProcessed! % 16;
 
+    //If this method is called with less than 16 bytes ignore it
+    if (rawData[index].length < 16) {
+      rawData.removeAt(index);
+      return;
+    }
+
     String partialItem = rawData[index].substring(offset);
     String mergedData = partialItem + rawData.sublist(index + 1).join('');
 
@@ -543,28 +556,52 @@ class SharedBluetoothData extends ChangeNotifier {
           print('Invalid line: $line $bytesProcessed');
         } else {
           double? time = null;
-          int? intTime = null;
+          int intTime = -1;
 
           if (indexOfTime != -1) {
-            time = double.parse(parts[indexOfTime!]);
-            intTime = time.floor() ~/ 60;
+            try {
+              time = double.parse(parts[indexOfTime!]);
+              intTime = time.toInt();
+            } catch (e) {
+              print('Error parsing double: $e');
+              print(parts[indexOfTime!]);
+            }
           }
 
-          parts = List<String>.from(parts.sublist(0, indexOfTime)
-            ..addAll(parts.sublist(indexOfTime! + 1)));
+          //This statement exists because when the microbit disconnects and reconnects, the time resets to 0
+          //By doing this those new data points will be logged at current time + largest time
+          if (intTime >= prevTime && intTime < largestTime) {
+            _prevTime = intTime;
+            intTime = intTime + largestTime;
+          }
 
-          // name, reboot, local time, time, data...
-          List<dynamic> newRow = [
-            getLabel().toString(),
-            nextDataAfterReboot ? 'true' : 'false',
-            "null",
-            intTime,
-            ...parts
-          ];
+          //Prevent parsing error where current time is invalid/already happened
+          if (intTime > largestTime) {
+            _largestTime = intTime;
+            _prevTime = intTime;
 
-          // print('New Row: $newRow');
-          rows.add(newRow);
-          _nextDataAfterReboot = false;
+            parts = List<String>.from(parts.sublist(0, indexOfTime)
+              ..addAll(parts.sublist(indexOfTime! + 1)));
+
+            // name, reboot, local time, time, data...
+            List<dynamic> newRow = [
+              getLabel().toString(),
+              nextDataAfterReboot ? 'true' : 'false',
+              "null",
+              intTime,
+              ...parts
+            ];
+
+            //Verify data was put together correctly otherwise app will crash
+            if (newRow.length != fullHeaders.length) {
+              print('Invalid row: $newRow');
+            } else {
+              // print('New Row: $newRow');
+              rows.add(newRow);
+              _nextDataAfterReboot = false;
+              notifyListeners();
+            }
+          }
         }
       }
     }
@@ -577,7 +614,7 @@ class SharedBluetoothData extends ChangeNotifier {
     }
 
     // Advance by total contents of lines and newlines
-    _bytesProcessed = _bytesProcessed! +
+    _bytesProcessed = _bytesProcessed +
         lines.length +
         lines.fold<int>(0, (a, b) => a + b.length);
 
@@ -732,7 +769,7 @@ class SharedBluetoothData extends ChangeNotifier {
 
     // First four bytes are index/offset this is in reply to...
     var dv = event;
- 
+
     // // PERFORMANCE CHECKING
     // dataTransferred += dv.byteLength;
 
@@ -850,6 +887,7 @@ class SharedBluetoothData extends ChangeNotifier {
     _eraseChar = null;
     _usageChar = null;
     _timeChar = null;
+    _prevTime = 0;
     // Update data to reflect what we actually have
     _dataLength = rawData.length > 1 ? (rawData.length - 1) * 16 : 0;
 

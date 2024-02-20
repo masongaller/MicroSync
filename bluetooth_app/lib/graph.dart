@@ -1,3 +1,4 @@
+import 'package:bluetooth_app/enumerator.dart';
 import 'package:bluetooth_app/shareddata.dart';
 import 'package:bluetooth_app/zoomable_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,16 +16,29 @@ class MyDataPage extends StatefulWidget {
 
 class _MyDataPageState extends State<MyDataPage>
     with AutomaticKeepAliveClientMixin<MyDataPage> {
-
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     final watchPoints = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
-    final readPoints = context
-        .read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
+    final readPoints = context.read<
+        SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
-    return Stack(
+    if (watchPoints.fullHeaders.isNotEmpty) {
+      double? maxTime;
+
+      for (var row in watchPoints.rows) {
+        dynamic timeValue = row[RowIndices.intTime];
+
+        if (timeValue is num) {
+          // If timeValue is a number (int or double), update maxTime
+          if (maxTime == null || timeValue > maxTime!) {
+            maxTime = timeValue.toDouble();
+          }
+        }
+      }
+
+      return Stack(
         children: <Widget>[
           Column(
             children: <Widget>[
@@ -57,23 +71,44 @@ class _MyDataPageState extends State<MyDataPage>
                 child: Padding(
                   padding: const EdgeInsets.only(right: 16, left: 6),
                   child: ZoomableChart(
-                    maxX: readPoints.points.length.toDouble() - 1,
+                    maxX: maxTime ?? 0,
                     builder: (minX, maxX) {
+                      List<LineChartBarData> lineBarsData =
+                          List<LineChartBarData>.generate(
+                        watchPoints.headers.length - 1,
+                        (barIndex) {
+                          String header = watchPoints.headers[barIndex + 1];
+                          return LineChartBarData(
+                            spots: List<FlSpot>.generate(
+                              watchPoints.rows.length,
+                              (index) {
+                                dynamic value = watchPoints.rows[index]
+                                    [watchPoints.fullHeaders.indexOf(header)];
+                                double yValue = (value is double ||
+                                        value is int)
+                                    ? value
+                                        .toDouble() // Already a double or int, no need to parse
+                                    : double.parse(value
+                                        .toString()); // Parse if it's a String
+
+                                return FlSpot(
+                                  watchPoints.rows[index][RowIndices.intTime]
+                                      .toDouble(),
+                                  yValue,
+                                );
+                              },
+                            ),
+                            isCurved: false,
+                            isStrokeCapRound: true,
+                            dotData: const FlDotData(show: true),
+                            belowBarData: BarAreaData(show: false),
+                          );
+                        },
+                      );
+
                       return LineChart(
                         LineChartData(
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: List<FlSpot>.generate(
-                                  watchPoints.points.length,
-                                  (index) => FlSpot(
-                                      watchPoints.points[index].x.toDouble(),
-                                      watchPoints.points[index].y.toDouble())),
-                              isCurved: false,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: true),
-                              belowBarData: BarAreaData(show: false),
-                            ),
-                          ],
+                          lineBarsData: lineBarsData,
                           titlesData: FlTitlesData(
                             bottomTitles: AxisTitles(
                               sideTitles: bottomTitles,
@@ -117,11 +152,7 @@ class _MyDataPageState extends State<MyDataPage>
                                         fontWeight: FontWeight.w700,
                                       );
                                       return LineTooltipItem(
-                                        "Y: ${watchPoints
-                                                .points[touchedSpot.spotIndex].y
-                                                .toStringAsFixed(2)}\nX: ${watchPoints
-                                                .points[touchedSpot.spotIndex].x
-                                                .toStringAsFixed(2)}",
+                                        "X: ${touchedSpot.x.toStringAsFixed(2)}\nY: ${touchedSpot.y.toStringAsFixed(2)}",
                                         textStyle,
                                       );
                                     },
@@ -163,6 +194,16 @@ class _MyDataPageState extends State<MyDataPage>
           ),
         ],
       );
+    } else {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            'No Data Yet!',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+      );
+    }
   }
 
   SideTitles get bottomTitles => SideTitles(

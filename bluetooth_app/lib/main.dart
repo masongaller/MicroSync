@@ -1,9 +1,15 @@
 import 'package:bluetooth_app/welcome.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeFlip(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -11,10 +17,11 @@ class MyApp extends StatelessWidget {
   static final _defaultDarkColorScheme = ColorScheme.fromSwatch(
       primarySwatch: Colors.deepPurple, brightness: Brightness.dark);
   static final _defaultLightColorScheme =
-      ColorScheme.fromSwatch(primarySwatch: Colors.deepPurple);
+      ColorScheme.fromSwatch(primarySwatch: Colors.indigo, brightness: Brightness.light);
 
   @override
   Widget build(BuildContext context) {
+    final watchTheme = context.watch<ThemeFlip>();
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
       return MaterialApp(
         title: 'Flutter Demo',
@@ -26,10 +33,22 @@ class MyApp extends StatelessWidget {
           colorScheme: darkColorScheme ?? _defaultDarkColorScheme,
           useMaterial3: true,
         ),
-        themeMode: ThemeMode.system,
+        themeMode: watchTheme.themeMode,
         home: const WelcomeScreen(),
       );
     });
+  }
+}
+
+class ThemeFlip extends ChangeNotifier {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  ThemeMode get themeMode => _themeMode;
+
+  void toggleTheme() {
+    _themeMode =
+        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    notifyListeners();
   }
 }
 

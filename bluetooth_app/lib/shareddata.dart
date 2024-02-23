@@ -142,11 +142,20 @@ class SharedBluetoothData extends ChangeNotifier {
   int? _indexOfTime;
   int? get indexOfTime => _indexOfTime;
 
-  int _largestTime = -1;
-  int get largestTime => _largestTime;
-
-  int _prevTime = -1;
+  int _prevTime = 0;
   int get prevTime => _prevTime;
+
+  int _currTime = 0;
+  int get currTime => _currTime;
+
+  int _timeDiff = 0;
+  int get timeDiff => _timeDiff;
+
+  List<int> _prevTimeDiffs = [];
+  List<int> get prevTimeDiffs => _prevTimeDiffs;
+
+  final int _rollingAverageSize = 100;
+  int get rollingAverageSize => _rollingAverageSize;
 
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
@@ -228,7 +237,7 @@ class SharedBluetoothData extends ChangeNotifier {
     services =
         services.where((u) => u.serviceUuid.toString() == serviceUUID).toList();
 
-    if (services.isNotEmpty) {
+    if (services.isNotEmpty && device != null) {
       BluetoothService service = services.first;
       List<BluetoothCharacteristic> chars = service.characteristics.toList();
 
@@ -397,6 +406,9 @@ class SharedBluetoothData extends ChangeNotifier {
     _indexOfTime = 0;
     _fullHeaders = [];
     _rows = [];
+    _prevTime = 0;
+    _currTime = 0;
+    _prevTimeDiffs = [];
 
     /**
    * @event graph-cleared
@@ -568,39 +580,46 @@ class SharedBluetoothData extends ChangeNotifier {
             }
           }
 
-          //This statement exists because when the microbit disconnects and reconnects, the time resets to 0
-          //By doing this those new data points will be logged at current time + largest time
-          if (intTime >= prevTime && intTime < largestTime) {
-            _prevTime = intTime;
-            intTime = intTime + largestTime;
+          //Code below is to take rolling average of times
+          _timeDiff = intTime - prevTime;
+
+          _prevTimeDiffs.add(timeDiff);
+
+          // Ensure _rollingAverageSize is not exceeded
+          if (_prevTimeDiffs.length > _rollingAverageSize) {
+            _prevTimeDiffs.removeAt(0);
           }
 
-          //Prevent parsing error where current time is invalid/already happened
-          if (intTime > largestTime) {
-            _largestTime = intTime;
-            _prevTime = intTime;
+          _currTime = currTime +
+              _prevTimeDiffs.fold<int>(0, (a, b) => a + b) ~/
+                  _prevTimeDiffs.length;
 
-            parts = List<String>.from(parts.sublist(0, indexOfTime)
-              ..addAll(parts.sublist(indexOfTime! + 1)));
+          print(_prevTimeDiffs.fold<int>(0, (a, b) => a + b) ~/
+                  _prevTimeDiffs.length);
 
-            // name, reboot, local time, time, data...
-            List<dynamic> newRow = [
-              getLabel().toString(),
-              nextDataAfterReboot ? 'true' : 'false',
-              "null",
-              intTime,
-              ...parts
-            ];
+          parts = List<String>.from(parts.sublist(0, indexOfTime)
+            ..addAll(parts.sublist(indexOfTime! + 1)));
 
-            //Verify data was put together correctly otherwise app will crash
-            if (newRow.length != fullHeaders.length) {
-              print('Invalid row: $newRow');
-            } else {
-              // print('New Row: $newRow');
-              rows.add(newRow);
-              _nextDataAfterReboot = false;
-              notifyListeners();
-            }
+          // name, reboot, local time, time, data...
+          List<dynamic> newRow = [
+            getLabel().toString(),
+            nextDataAfterReboot ? 'true' : 'false',
+            "null",
+            currTime,
+            ...parts
+          ];
+
+          _prevTime = intTime;
+          
+
+          //Verify data was put together correctly otherwise app will crash
+          if (newRow.length != fullHeaders.length) {
+            print('Invalid row: $newRow');
+          } else {
+            // print('New Row: $newRow');
+            rows.add(newRow);
+            _nextDataAfterReboot = false;
+            notifyListeners();
           }
         }
       }

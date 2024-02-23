@@ -32,8 +32,9 @@ class _MyHomePageState extends State<MyHomePage>
         } else {
           _handleBluetoothOff(readBLE);
         }
-      } else {
-        _handleBluetoothOff(readBLE);
+      }
+      else {
+        readBLE.bluetoothDisabled();
       }
     });
   }

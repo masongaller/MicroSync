@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:bluetooth_app/enumerator.dart';
 import 'package:bluetooth_app/shareddata.dart';
 import 'package:bluetooth_app/zoomable_chart.dart';
@@ -24,8 +26,25 @@ class _MyDataPageState extends State<MyDataPage>
     final readPoints = context.read<
         SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
+    List<Color> _generateRandomColors(int count) {
+      Random random = Random();
+      List<Color> colors = List.generate(count, (index) {
+        return Color.fromRGBO(
+          random.nextInt(256),
+          random.nextInt(256),
+          random.nextInt(256),
+          1.0,
+        );
+      });
+      return colors;
+    }
+
+    
+
     if (watchPoints.fullHeaders.isNotEmpty) {
       double? maxTime;
+
+      List<Color> barColors = _generateRandomColors(watchPoints.headers.length);
 
       for (var row in watchPoints.rows) {
         dynamic timeValue = row[RowIndices.intTime];
@@ -102,6 +121,7 @@ class _MyDataPageState extends State<MyDataPage>
                             isStrokeCapRound: true,
                             dotData: const FlDotData(show: true),
                             belowBarData: BarAreaData(show: false),
+                            color: barColors[barIndex],
                           );
                         },
                       );
@@ -112,11 +132,11 @@ class _MyDataPageState extends State<MyDataPage>
                           titlesData: FlTitlesData(
                             bottomTitles: AxisTitles(
                               sideTitles: bottomTitles,
-                              axisNameWidget: Text('Axis name'),
+                              axisNameWidget: Text(readPoints.headers[0]),
                             ),
                             leftTitles: AxisTitles(
                               sideTitles: leftTitles,
-                              axisNameWidget: Text('Axis name'),
+                              axisNameWidget: Text(readPoints.headers[1]),
                             ),
                             topTitles: const AxisTitles(
                               sideTitles: SideTitles(showTitles: false),

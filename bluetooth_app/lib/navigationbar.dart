@@ -23,11 +23,43 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
 
+    List<Widget> buildAppBarActions(int currentIndex) {
+      if (currentIndex == 0 || currentIndex == 1) {
+        return [
+          IconButton(
+            icon: const Icon(
+                Icons.ios_share), // Replace 'your_icon' with the desired icon
+            onPressed: () {
+              context.read<SharedBluetoothData>().exportViaCSV();
+            },
+          ),
+        ];
+      }
+      return [];
+    }
+
+    Widget buildAppBarLeading(int currentIndex) {
+      if (currentIndex == 0 || currentIndex == 1) {
+        return 
+          IconButton(
+            icon: const Icon(
+                Icons.refresh), // Replace 'your_icon' with the desired icon
+            onPressed: () {
+              context.read<SharedBluetoothData>().refreshData();
+            },
+          )
+        ;
+      }
+      return Text("");
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
         backgroundColor: theme.primaryColor,
         elevation: 0,
+        leading: buildAppBarLeading(currentPageIndex),
+        actions: buildAppBarActions(currentPageIndex),
       ),
       bottomNavigationBar: NavigationBar(
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
@@ -61,9 +93,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
           ),
         ],
       ),
-      body: ChangeNotifierProvider(
-        create: (context) => SharedBluetoothData(),
-        child: PageView(
+      body: PageView(
           controller: _pageController,
           onPageChanged: _onPageChanged,
           children: const [
@@ -74,7 +104,6 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
             MySettingsPage(),
           ],
         ),
-      ),
     );
   }
 

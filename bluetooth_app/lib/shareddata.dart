@@ -1,10 +1,12 @@
 import 'dart:async';
-import 'dart:ffi';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:bluetooth_app/graph.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:csv/csv.dart';
 
 /// @fileoverview JavaScript functions for interacting with micro:bit microcontrollers over WebBluetooth
 /// (Only works in Chrome browsers;  Pages must be either HTTPS or local)
@@ -100,6 +102,12 @@ class SharedBluetoothData extends ChangeNotifier {
   List<String> _rawData = [];
   List<String> get rawData => _rawData;
 
+  String _rawDataString = "";
+  String get rawDataString => _rawDataString;
+
+  String _rawDataCache = "";
+  String get rawDataCache => _rawDataCache;
+
   DeviceIdentifier _id = DeviceIdentifier("0");
   DeviceIdentifier get id => _id;
 
@@ -145,17 +153,11 @@ class SharedBluetoothData extends ChangeNotifier {
   int _prevTime = 0;
   int get prevTime => _prevTime;
 
-  int _currTime = 0;
-  int get currTime => _currTime;
+  int _prevTime2 = 0;
+  int get prevTime2 => _prevTime2;
 
-  int _timeDiff = 0;
-  int get timeDiff => _timeDiff;
-
-  List<int> _prevTimeDiffs = [];
-  List<int> get prevTimeDiffs => _prevTimeDiffs;
-
-  final int _rollingAverageSize = 100;
-  int get rollingAverageSize => _rollingAverageSize;
+  int _largestTime = 0;
+  int get largestTime => _largestTime;
 
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
@@ -163,24 +165,6 @@ class SharedBluetoothData extends ChangeNotifier {
   List<dynamic> getData({int start = 0, int? end}) {
     end ??= rows.length;
     return rows.sublist(start, end);
-  }
-
-  /// Get the data as a CSV representation
-  /// This is the full, augmnted data.  The first column will be the miro:bit name (not label), then an indiator
-  /// of the reboot, then the wall-clock time (UTC stamp in ISO format if it can reliably be identified),
-  /// then the microbit's clock time, then the data.
-  /// @returns {string} The CSV of the augmented data
-  String getCSV() {
-    String headers = fullHeaders.join(",") + "\n";
-    String data = rows.map((r) => r.join(",")).join("\n");
-    return headers + data;
-  }
-
-  /// Get the raw (micro:bit) data as a CSV representation. This should match the CSV retrieved from
-  /// accessing the Micro:bit as a USB drive
-  /// @returns {string} The CSV of the raw data
-  String getRawCSV() {
-    return rawData.join('');
   }
 
   /// Request an erase (if connected & authorized)
@@ -407,8 +391,8 @@ class SharedBluetoothData extends ChangeNotifier {
     _fullHeaders = [];
     _rows = [];
     _prevTime = 0;
-    _currTime = 0;
-    _prevTimeDiffs = [];
+    _prevTime2 = 0;
+    _largestTime = 0;
 
     /**
    * @event graph-cleared
@@ -580,22 +564,21 @@ class SharedBluetoothData extends ChangeNotifier {
             }
           }
 
-          //Code below is to take rolling average of times
-          _timeDiff = intTime - prevTime;
-
-          _prevTimeDiffs.add(timeDiff);
-
-          // Ensure _rollingAverageSize is not exceeded
-          if (_prevTimeDiffs.length > _rollingAverageSize) {
-            _prevTimeDiffs.removeAt(0);
+          //Previous data is out of order so delete it
+          if (prevTime <= prevTime2 && prevTime2 <= intTime && rows.length > 2) {
+            rows.removeLast();
           }
 
-          _currTime = currTime +
-              _prevTimeDiffs.fold<int>(0, (a, b) => a + b) ~/
-                  _prevTimeDiffs.length;
+          if (intTime <= 1 && intTime >= 0) {
+            _largestTime = prevTime;
+          }
 
-          print(_prevTimeDiffs.fold<int>(0, (a, b) => a + b) ~/
-                  _prevTimeDiffs.length);
+          intTime = intTime + largestTime;
+
+          //Dont add duplicate data
+          if (prevTime == intTime && rows.isNotEmpty) {
+            continue;
+          }
 
           parts = List<String>.from(parts.sublist(0, indexOfTime)
             ..addAll(parts.sublist(indexOfTime! + 1)));
@@ -605,12 +588,12 @@ class SharedBluetoothData extends ChangeNotifier {
             getLabel().toString(),
             nextDataAfterReboot ? 'true' : 'false',
             "null",
-            currTime,
+            intTime,
             ...parts
           ];
 
+          _prevTime2 = prevTime;
           _prevTime = intTime;
-          
 
           //Verify data was put together correctly otherwise app will crash
           if (newRow.length != fullHeaders.length) {
@@ -723,6 +706,8 @@ class SharedBluetoothData extends ChangeNotifier {
         print('ERROR: Null segment: $i');
       }
       _rawData.add(retrieve.segments[i]);
+      _rawDataString += retrieve.segments[i];
+      _rawDataCache += retrieve.segments[i];
       //rawData[retrieve.start + i] = retrieve.segments[i];
     }
     parseData();
@@ -907,6 +892,8 @@ class SharedBluetoothData extends ChangeNotifier {
     _usageChar = null;
     _timeChar = null;
     _prevTime = 0;
+    _prevTime2 = 0;
+    _largestTime = 0;
     // Update data to reflect what we actually have
     _dataLength = rawData.length > 1 ? (rawData.length - 1) * 16 : 0;
 
@@ -1058,5 +1045,21 @@ class SharedBluetoothData extends ChangeNotifier {
     _deviceName = "No device connected";
     _disconnectedBool = true;
     notifyListeners();
+  }
+
+  /// Export the data to a CSV file
+  void exportViaCSV() async {
+    List<List<dynamic>> headerPlusData = [fullHeaders, ...rows];
+    String csvString = const ListToCsvConverter().convert(headerPlusData);
+
+    final directory = await getTemporaryDirectory();
+    
+    final csvFilePath = await File('${directory.path}/exportData.csv').create();
+    await csvFilePath.writeAsString(csvString);
+    final files = <XFile>[];
+    files.add(XFile('${directory.path}/exportData.csv', name: 'CSV Data'));
+
+    /// Share Plugin
+    Share.shareXFiles(files);
   }
 }

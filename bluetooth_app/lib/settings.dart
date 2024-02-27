@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:bluetooth_app/main.dart';
 
 class MySettingsPage extends StatefulWidget {
-  const MySettingsPage({Key? key}) : super(key: key);
+  const MySettingsPage({super.key});
 
   @override
   State<MySettingsPage> createState() => _MySettingsPageState();
@@ -18,9 +18,19 @@ class _MySettingsPageState extends State<MySettingsPage>
   IconData get currentIcon => _selected[0] ? Icons.dark_mode : Icons.light_mode;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selected = [MediaQuery.of(context).platformBrightness == Brightness.dark];
+  void initState() {
+    super.initState();
+    _initializeSelected();
+  }
+
+  Future<void> _initializeSelected() async {
+    await Future.delayed(Duration.zero);
+
+    setState(() {
+      _selected = [
+        MediaQuery.of(context).platformBrightness == Brightness.dark
+      ];
+    });
   }
 
   @override

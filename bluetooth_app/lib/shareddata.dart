@@ -567,6 +567,7 @@ class SharedBluetoothData extends ChangeNotifier {
           //Previous data is out of order so delete it
           if (prevTime <= prevTime2 && prevTime2 <= intTime && rows.length > 2) {
             rows.removeLast();
+            continue;
           }
 
           if (intTime <= 1 && intTime >= 0) {

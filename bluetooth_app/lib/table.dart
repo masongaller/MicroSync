@@ -1,7 +1,8 @@
-import 'package:bluetooth_app/enumerator.dart';
 import 'package:bluetooth_app/shareddata.dart';
+import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/rendering.dart';
 
 class MyTablePage extends StatefulWidget {
   const MyTablePage({super.key});
@@ -21,31 +22,30 @@ class _MyTablePageState extends State<MyTablePage>
     if (watchPoints.fullHeaders.isNotEmpty) {
       return Scaffold(
         body: Center(
-          child: SingleChildScrollView(
-              child: Column(
-            children: [
-              DataTable(
-                columns: List<DataColumn>.generate(
-                  watchPoints.headers.length,
-                  (int index) => DataColumn(
-                    label: Expanded(
-                      child: Text(
-                        watchPoints.headers[index],
-                        style: const TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
+          child: DataTable2(
+            columnSpacing: 12,
+            horizontalMargin: 12,
+            minWidth: 600,
+            fixedTopRows: 1,
+            columns: List<DataColumn>.generate(
+              watchPoints.headers.length,
+              (int index) => DataColumn(
+                label: Expanded(
+                  child: Text(
+                    watchPoints.headers[index],
+                    style: const TextStyle(fontStyle: FontStyle.italic),
                   ),
                 ),
-                rows: watchPoints.rows.map((rowData) {
-                  return DataRow(
-                    cells: rowData.skip(3).map((cellData) {
-                      return DataCell(Text(cellData.toString()));
-                    }).toList(),
-                  );
-                }).toList(),
               ),
-            ],
-          )),
+            ),
+            rows: watchPoints.rows.map((rowData) {
+              return DataRow(
+                cells: rowData.skip(3).map((cellData) {
+                  return DataCell(Text(cellData.toString()));
+                }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       );
     } else {

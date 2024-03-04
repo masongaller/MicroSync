@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -129,8 +130,12 @@ class SharedBluetoothData extends ChangeNotifier {
   bool _firstConnectionUpdate = false;
   bool get firstConnectionUpdate => _firstConnectionUpdate;
 
-  String _password = "";
-  String get password => _password;
+  String? _password;
+  String? get password => _password;
+  set password(String? value) {
+    _password = value;
+    notifyListeners();
+  }
 
   Timer? _onDataTimeoutHandler;
   Timer? get onDataTimeoutHandler => _onDataTimeoutHandler;
@@ -158,6 +163,13 @@ class SharedBluetoothData extends ChangeNotifier {
 
   int _largestTime = 0;
   int get largestTime => _largestTime;
+
+  bool _needPasswordPrompt = false;
+  bool get needPasswordPrompt => _needPasswordPrompt;
+  set needPasswordPrompt(bool value) {
+    _needPasswordPrompt = value;
+    notifyListeners();
+  }
 
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
@@ -193,8 +205,9 @@ class SharedBluetoothData extends ChangeNotifier {
       for (var c in password.runes) {
         dv.setUint8(i++, c);
       }
-      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()));
+      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()), withoutResponse: true);
       _password = password;
+      _needPasswordPrompt = false;
     }
   }
 
@@ -564,8 +577,14 @@ class SharedBluetoothData extends ChangeNotifier {
             }
           }
 
+          if (intTime < 0) {
+            continue;
+          }
+
           //Previous data is out of order so delete it
-          if (prevTime <= prevTime2 && prevTime2 <= intTime && rows.length > 2) {
+          if (prevTime <= prevTime2 &&
+              prevTime2 <= intTime &&
+              rows.length > 2) {
             rows.removeLast();
             continue;
           }
@@ -641,12 +660,7 @@ class SharedBluetoothData extends ChangeNotifier {
         sendAuthorization(password!);
         _passwordAttempts++;
       } else {
-        // Need a password or password didn't work
-        /**
-       * @event unauthorized
-       * @type {object}
-       * @property {uBit} detail.device The device that is not authorized (must provide a valid password to use the device. See {@link uBit#sendAuthorization})
-       */
+        _needPasswordPrompt = true;
         notifyListeners();
       }
     }
@@ -1054,7 +1068,7 @@ class SharedBluetoothData extends ChangeNotifier {
     String csvString = const ListToCsvConverter().convert(headerPlusData);
 
     final directory = await getTemporaryDirectory();
-    
+
     final csvFilePath = await File('${directory.path}/exportData.csv').create();
     await csvFilePath.writeAsString(csvString);
     final files = <XFile>[];

@@ -24,41 +24,56 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
     final ThemeData theme = Theme.of(context);
 
     List<Widget> buildAppBarActions(int currentIndex) {
-      if (currentIndex == 0 || currentIndex == 1) {
-        return [
-          IconButton(
-            icon: const Icon(
-                Icons.ios_share), // Replace 'your_icon' with the desired icon
-            onPressed: () {
+    if (currentIndex == 0 || currentIndex == 1) {
+      return [
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'share') {
               context.read<SharedBluetoothData>().exportViaCSV();
-            },
-          ),
-        ];
-      }
-      return [];
-    }
-
-    Widget buildAppBarLeading(int currentIndex) {
-      if (currentIndex == 0 || currentIndex == 1) {
-        return 
-          IconButton(
-            icon: const Icon(
-                Icons.refresh), // Replace 'your_icon' with the desired icon
-            onPressed: () {
+            } else if (value == 'refresh') {
               context.read<SharedBluetoothData>().refreshData();
-            },
-          )
-        ;
-      }
-      return Text("");
+            }
+            else if (value == 'delete') {
+              context.read<SharedBluetoothData>().sendErase();
+            }
+          },
+          itemBuilder: (BuildContext context) {
+            
+            return [
+              const PopupMenuItem<String>(
+                value: 'share',
+                child: ListTile(
+                  leading: Icon(Icons.share),
+                  title: Text('Share'),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'refresh',
+                child: ListTile(
+                  leading: Icon(Icons.refresh),
+                  title: Text('Refresh'),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: ListTile(
+                  leading: Icon(Icons.delete),
+                  title: Text('Delete'),
+                ),
+              ),
+            ];
+          },
+        ),
+      ];
     }
+    return [];
+  }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
         backgroundColor: theme.primaryColor,
         elevation: 0,
-        leading: buildAppBarLeading(currentPageIndex),
         actions: buildAppBarActions(currentPageIndex),
       ),
       bottomNavigationBar: NavigationBar(

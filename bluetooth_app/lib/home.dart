@@ -90,6 +90,53 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
+  Future<void> promptPassword(readBLE) async {
+  String enteredPassword = ""; // Variable to store the entered password
+
+  return showCupertinoDialog<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return CupertinoAlertDialog(
+        title: const Text('Password Required'),
+        content: Column(
+          children: <Widget>[
+            const Text(
+                'To access this micro:bit, please enter the password you set in the makecode editor.'),
+            CupertinoTextField(
+              placeholder: 'Password',
+              obscureText: true,
+              onChanged: (value) {
+                enteredPassword =
+                    value; // Update the entered password as the user types
+              },
+              style: const TextStyle(color: CupertinoColors.white), // Set text color
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              _connectOrDisconnect(readBLE);
+              Navigator.of(context).pop();
+            },
+          ),
+          CupertinoDialogAction(
+            child: const Text('Submit'),
+            onPressed: () {
+              // Handle the entered password as needed
+              readBLE.password = enteredPassword;
+              readBLE.sendAuthorization(enteredPassword);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
     final watchBLE = context.watch<
@@ -98,6 +145,14 @@ class _MyHomePageState extends State<MyHomePage>
         SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     var theme = Theme.of(context);
+
+    // listen for password prompt
+    var subscription = watchBLE.addListener(() async { 
+      if (watchBLE.needPasswordPrompt) {
+        watchBLE.needPasswordPrompt = false;
+        await promptPassword(readBLE);
+      }
+    });
 
     return Scaffold(
       body: Center(

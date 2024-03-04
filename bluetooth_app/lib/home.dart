@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:bluetooth_app/shareddata.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with AutomaticKeepAliveClientMixin<MyHomePage> {
   String _currText = "Scan";
-  Icon _currIcon = Icon(Icons.bluetooth_disabled);
+  Icon _currIcon = const Icon(Icons.bluetooth_disabled);
   bool _disconnected = true;
 
   Future<void> _connectOrDisconnect(readBLE) async {
@@ -139,6 +138,8 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Invoke the overridden method
+    
     final watchBLE = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readBLE = context.read<
@@ -176,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage>
                   itemBuilder: (context, index) {
                     return Card(
                         child: ListTile(
-                            leading: Icon(Icons.bluetooth),
+                            leading: const Icon(Icons.bluetooth),
                             title: Text(watchBLE.devices[index].platformName
                                 .toString()),
                             subtitle: Text(
@@ -184,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage>
                             trailing: ElevatedButton(
                               onPressed: () async {
                                 watchBLE.connectDevice(index);
-                                _currIcon = Icon(Icons.bluetooth_connected);
+                                _currIcon = const Icon(Icons.bluetooth_connected);
                                 _currText = "Disconnect";
                                 _disconnected = false;
                               },

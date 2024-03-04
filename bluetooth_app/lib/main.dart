@@ -11,7 +11,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => ThemeFlip()),
         ChangeNotifierProvider(create: (context) => SharedBluetoothData()),
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }

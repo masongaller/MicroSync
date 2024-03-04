@@ -2,7 +2,6 @@ import 'package:bluetooth_app/shareddata.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/rendering.dart';
 
 class MyTablePage extends StatefulWidget {
   const MyTablePage({super.key});
@@ -14,6 +13,8 @@ class _MyTablePageState extends State<MyTablePage>
     with AutomaticKeepAliveClientMixin<MyTablePage> {
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Invoke the overridden method
+
     final watchPoints = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readPoints = context.read<

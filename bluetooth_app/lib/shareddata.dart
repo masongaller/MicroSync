@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -51,9 +50,6 @@ class RetrieveTask {
 }
 
 class SharedBluetoothData extends ChangeNotifier {
-  //TODO: Remove this after refactor
-  List<Point> _points = [];
-  List<Point> get points => _points;
 
   BluetoothCharacteristic? _securityChar;
   BluetoothCharacteristic? get securityChar => _securityChar;
@@ -109,7 +105,7 @@ class SharedBluetoothData extends ChangeNotifier {
   String _rawDataCache = "";
   String get rawDataCache => _rawDataCache;
 
-  DeviceIdentifier _id = DeviceIdentifier("0");
+  DeviceIdentifier _id = const DeviceIdentifier("0");
   DeviceIdentifier get id => _id;
 
   String _name = "";
@@ -140,7 +136,7 @@ class SharedBluetoothData extends ChangeNotifier {
   Timer? _onDataTimeoutHandler;
   Timer? get onDataTimeoutHandler => _onDataTimeoutHandler;
 
-  List<RetrieveTask> _retrieveQueue = [];
+  final List<RetrieveTask> _retrieveQueue = [];
   List<RetrieveTask> get retrieveQueue => _retrieveQueue;
 
   int? _mbRebootTime;
@@ -260,7 +256,7 @@ class SharedBluetoothData extends ChangeNotifier {
     _nextDataAfterReboot = false;
     _firstConnectionUpdate = true;
 
-    chars.forEach((element) {
+    for (var element in chars) {
       String? charName = serviceCharacteristics[element.uuid.toString()];
       switch (charName) {
         case "securityChar":
@@ -288,7 +284,7 @@ class SharedBluetoothData extends ChangeNotifier {
           _timeChar = element;
           break;
       }
-    });
+    }
 
     // Connect / disconnect handlers
     /**
@@ -499,8 +495,8 @@ class SharedBluetoothData extends ChangeNotifier {
     // print('parseData');
 
     // Bytes processed always ends on a newline
-    int index = (bytesProcessed! / 16).floor();
-    int offset = bytesProcessed! % 16;
+    int index = (bytesProcessed / 16).floor();
+    int offset = bytesProcessed % 16;
 
     //If this method is called with less than 16 bytes ignore it
     if (rawData[index].length < 16) {
@@ -564,7 +560,7 @@ class SharedBluetoothData extends ChangeNotifier {
         if (parts.length < headers.length) {
           print('Invalid line: $line $bytesProcessed');
         } else {
-          double? time = null;
+          double? time;
           int intTime = -1;
 
           if (indexOfTime != -1) {
@@ -940,7 +936,7 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @private
   void onDataTimeout() {
     // Stuff to do when onData is done
-    if (this.onDataTimeoutHandler != null) {
+    if (onDataTimeoutHandler != null) {
       //console.log("onDataTimeout")
       clearDataTimeout();
       checkChunk();

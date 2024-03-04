@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 //Graph Tool Tip Tutorial From https://blog.logrocket.com/build-beautiful-charts-flutter-fl-chart/#customizing-tooltip
 
 class MyDataPage extends StatefulWidget {
-  const MyDataPage({Key? key}) : super(key: key);
+  const MyDataPage({super.key});
 
   @override
   State<MyDataPage> createState() => _MyDataPageState();
@@ -19,13 +19,15 @@ class _MyDataPageState extends State<MyDataPage>
     with AutomaticKeepAliveClientMixin<MyDataPage> {
   List<bool> selectedButton = [];
   List<Color>? barColors;
-  Icon playPauseIcon = Icon(Icons.pause);
+  Icon playPauseIcon = const Icon(Icons.pause);
   bool zoomable = true;
   List<String> currHeaders = [];
   double maxY = 0;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Invoke the overridden method
+    
     var theme = Theme.of(context);
     final watchPoints = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
@@ -62,7 +64,7 @@ class _MyDataPageState extends State<MyDataPage>
 
         if (timeValue is num) {
           // If timeValue is a number (int or double), update maxTime
-          if (maxTime == null || timeValue > maxTime!) {
+          if (maxTime == null || timeValue > maxTime) {
             maxTime = timeValue.toDouble();
           }
         }
@@ -75,7 +77,7 @@ class _MyDataPageState extends State<MyDataPage>
                 ? value.toDouble()
                 : double.parse(value.toString());
 
-            if (maxY == null || yValue > maxY) {
+            if (maxY == 0 || yValue > maxY) {
               maxY = yValue;
             }
           }
@@ -238,7 +240,7 @@ class _MyDataPageState extends State<MyDataPage>
                                         dashArray: [2, 4]);
                                     return TouchedSpotIndicatorData(
                                       line,
-                                      FlDotData(show: false),
+                                      const FlDotData(show: false),
                                     );
                                   },
                                 ).toList();
@@ -265,7 +267,7 @@ class _MyDataPageState extends State<MyDataPage>
                   itemCount: readPoints.headers.length - 1,
                   itemBuilder: (context, index) {
                     return CheckboxListTile(
-                      title: Text('${readPoints.headers[index + 1]}'),
+                      title: Text(readPoints.headers[index + 1]),
                       value: selectedButton[index],
                       controlAffinity: ListTileControlAffinity.leading,
                       activeColor:

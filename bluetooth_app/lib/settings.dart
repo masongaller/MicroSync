@@ -35,6 +35,8 @@ class _MySettingsPageState extends State<MySettingsPage>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Invoke the overridden method
+    
     final ThemeData theme = Theme.of(context);
     final readTheme = context.read<ThemeFlip>();
 

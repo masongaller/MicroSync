@@ -6,14 +6,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class ZoomableChart extends StatefulWidget {
-  ZoomableChart({
+  const ZoomableChart({
     super.key,
     required this.maxX,
     required this.builder,
   });
 
-  double maxX;
-  Widget Function(double, double) builder;
+  final double maxX;
+  final Widget Function(double, double) builder;
 
   @override
   State<ZoomableChart> createState() => _ZoomableChartState();

@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
-  double _opacity = 1;
+  final double _opacity = 1;
   double _padding = 1;
   double _iconOpacity = 0;
 
@@ -36,7 +36,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              MyNavigationBar(),
+              const MyNavigationBar(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const begin = Offset(0.0, 1.0);
             const end = Offset.zero;
@@ -83,7 +83,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: Text(
                     'Welcome',
                     style: GoogleFonts.oswald(
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 75,
                         fontWeight: FontWeight.bold,
                       ),
@@ -100,7 +100,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: child,
                     );
                   },
-                  child: Icon(
+                  child: const Icon(
                     Icons.bluetooth,
                     size: 100,
                   ),

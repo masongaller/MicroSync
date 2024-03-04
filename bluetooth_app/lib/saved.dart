@@ -10,23 +10,25 @@ class _MySavedPageState extends State<MySavedPage> with AutomaticKeepAliveClient
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    super.build(context); // Invoke the overridden method
+
+    return const Scaffold(
       body: Center(
         child: SingleChildScrollView(
           child: Column(
-            children: const [
-              const Text(
+            children: [
+              Text(
                 'Saved',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const Text(
+              Text(
                 'Coming Soon!',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,

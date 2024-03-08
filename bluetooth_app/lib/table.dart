@@ -39,7 +39,9 @@ class _MyTablePageState extends State<MyTablePage>
                 ),
               ),
             ),
-            rows: watchPoints.rows.map((rowData) {
+            rows: watchPoints.rows
+                .where((rowData) => !(rowData.length == 1)) //Do not include reboot rows
+                .map((rowData) {
               return DataRow(
                 cells: rowData.skip(3).map((cellData) {
                   return DataCell(Text(cellData.toString()));

@@ -27,12 +27,14 @@ class _MyDataPageState extends State<MyDataPage>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Invoke the overridden method
-    
+
     var theme = Theme.of(context);
     final watchPoints = context.watch<
         SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
     final readPoints = context.read<
         SharedBluetoothData>(); //To modify the data without rebuilding the widget
+
+    List<VerticalLine> verticalLines = [];
 
     List<Color> generateRandomColors(int count) {
       Random random = Random();
@@ -60,6 +62,10 @@ class _MyDataPageState extends State<MyDataPage>
       double? maxTime;
       maxY = 0;
       for (var row in watchPoints.rows) {
+        if (row.length == 1) {
+          //Skip reboot rows
+          continue;
+        }
         dynamic timeValue = row[RowIndices.intTime];
 
         if (timeValue is num) {
@@ -148,6 +154,15 @@ class _MyDataPageState extends State<MyDataPage>
                             spots: List<FlSpot>.generate(
                               watchPoints.rows.length,
                               (index) {
+                                if (watchPoints.rows[index][0] == "Reboot") {
+                                  //Create discontinuity in graph to signify data reboot
+                                  verticalLines.add(VerticalLine(
+                                      x: watchPoints.rows[index - 1]
+                                              [RowIndices.intTime]
+                                          .toDouble() + 0.5,
+                                      dashArray: [2, 4]));
+                                  return FlSpot.nullSpot;
+                                }
                                 dynamic value = watchPoints.rows[index]
                                     [watchPoints.fullHeaders.indexOf(header)];
                                 double yValue = (value is double ||
@@ -177,6 +192,9 @@ class _MyDataPageState extends State<MyDataPage>
 
                       return LineChart(
                         LineChartData(
+                          extraLinesData: ExtraLinesData(
+                            verticalLines: verticalLines,
+                          ),
                           lineBarsData: lineBarsData,
                           titlesData: FlTitlesData(
                             bottomTitles: AxisTitles(

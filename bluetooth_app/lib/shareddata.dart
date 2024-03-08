@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// @fileoverview JavaScript functions for interacting with micro:bit microcontrollers over WebBluetooth
 /// (Only works in Chrome browsers;  Pages must be either HTTPS or local)
@@ -50,7 +52,6 @@ class RetrieveTask {
 }
 
 class SharedBluetoothData extends ChangeNotifier {
-
   BluetoothCharacteristic? _securityChar;
   BluetoothCharacteristic? get securityChar => _securityChar;
 
@@ -201,7 +202,8 @@ class SharedBluetoothData extends ChangeNotifier {
       for (var c in password.runes) {
         dv.setUint8(i++, c);
       }
-      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()), withoutResponse: true);
+      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()),
+          withoutResponse: true);
       _password = password;
       _needPasswordPrompt = false;
     }
@@ -498,6 +500,13 @@ class SharedBluetoothData extends ChangeNotifier {
     int index = (bytesProcessed / 16).floor();
     int offset = bytesProcessed % 16;
 
+    //Correct for offset being off by 1
+    // if (offset != 0 && index != 0) {
+    //   offset = offset - 1;
+    // }
+
+    offset = 0;
+
     //If this method is called with less than 16 bytes ignore it
     if (rawData[index].length < 16) {
       rawData.removeAt(index);
@@ -518,6 +527,7 @@ class SharedBluetoothData extends ChangeNotifier {
       if (line == '0') {
         // Single 0 is reboot
         // print('Reboot');
+        rows.add(["Reboot"]);
         _nextDataAfterReboot = true;
       } else if (line.contains('Time')) {
         // Header: Time header found
@@ -645,12 +655,14 @@ class SharedBluetoothData extends ChangeNotifier {
   /// Callback when a security message is received
   /// @param {event}} event The BLE security data
   /// @private
-  void onSecurity(dynamic event) {
+  void onSecurity(dynamic event) async {
     int value = event[0];
 
     if (value != 0) {
       onAuthorized();
+      savePassword();
     } else {
+      await getPassword();
       if (password != null && passwordAttempts == 0) {
         // If we're on the first connect and we have a stored password, try it
         sendAuthorization(password!);
@@ -659,6 +671,21 @@ class SharedBluetoothData extends ChangeNotifier {
         _needPasswordPrompt = true;
         notifyListeners();
       }
+    }
+  }
+
+  void savePassword() async {
+    if (password != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('password', password!);
+    }
+  }
+
+  Future<void> getPassword() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? password = prefs.getString('password');
+    if (password != null) {
+      _password = password;
     }
   }
 
@@ -1072,5 +1099,91 @@ class SharedBluetoothData extends ChangeNotifier {
 
     /// Share Plugin
     Share.shareXFiles(files);
+  }
+
+  void saveData(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    String time = DateTime.now().toLocal().toString();
+
+    fileName = fileName + '\x1F' + time + ".json";
+
+    final file = File('${directory.path}/$fileName');
+
+    // Combine fullHeaders and rows into a single Dart object
+    final combinedData = {'fullHeaders': fullHeaders, 'rows': rows};
+
+    // Encode the combinedData object
+    final encodedData = jsonEncode(combinedData);
+
+    await file.writeAsString(encodedData);
+  }
+
+  void readData(File file) async {
+    if (await file.exists()) {
+      final fileContent = await file.readAsString();
+      final decodedData = jsonDecode(fileContent);
+
+      if (decodedData is Map<String, dynamic>) {
+        _fullHeaders = List<String>.from(decodedData['fullHeaders']);
+
+        if (decodedData.containsKey('rows')) {
+          _rows = List<List<dynamic>>.from(decodedData['rows'].map(
+            (innerList) => List<dynamic>.from(innerList),
+          ));
+        } else {
+          _rows = []; // No rows in the decoded data
+        }
+
+        // Initialize _headers without the first three elements of _fullHeaders
+        _headers = List<String>.from(_fullHeaders.sublist(3));
+      } else {
+        print('Invalid data format: ${file.path}');
+      }
+    } else {
+      print('File not found: ${file.path}');
+    }
+  }
+
+  Future<void> promptFileName(context) async {
+    String fileName = ""; // Variable to store the entered password
+
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('File Name'),
+          content: Column(
+            children: <Widget>[
+              const Text(
+                  'What would you like to name the file? (Do not include file extension ex. .json)'),
+              CupertinoTextField(
+                placeholder: 'File Name',
+                obscureText: false,
+                onChanged: (value) {
+                  fileName = value;
+                },
+                style: const TextStyle(color: CupertinoColors.white),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Save'),
+              onPressed: () {
+                saveData(fileName);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }

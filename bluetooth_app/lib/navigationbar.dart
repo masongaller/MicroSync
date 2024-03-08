@@ -24,50 +24,91 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
     final ThemeData theme = Theme.of(context);
 
     List<Widget> buildAppBarActions(int currentIndex) {
-    if (currentIndex == 0 || currentIndex == 1) {
-      return [
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'share') {
-              context.read<SharedBluetoothData>().exportViaCSV();
-            } else if (value == 'refresh') {
-              context.read<SharedBluetoothData>().refreshData();
-            }
-            else if (value == 'delete') {
-              context.read<SharedBluetoothData>().sendErase();
-            }
-          },
-          itemBuilder: (BuildContext context) {
-            
-            return [
-              const PopupMenuItem<String>(
-                value: 'share',
-                child: ListTile(
-                  leading: Icon(Icons.share),
-                  title: Text('Share'),
+      if (currentIndex == 0 || currentIndex == 1) {
+        return [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'share') {
+                context.read<SharedBluetoothData>().exportViaCSV();
+              } else if (value == 'refresh') {
+                context.read<SharedBluetoothData>().refreshData();
+              } else if (value == 'delete') {
+                context.read<SharedBluetoothData>().sendErase();
+              } else if (value == 'save') {
+                if (context
+                    .read<SharedBluetoothData>()
+                    .fullHeaders
+                    .isNotEmpty) {
+                  context.read<SharedBluetoothData>().promptFileName(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(Icons.error,
+                              color: theme
+                                  .colorScheme.error),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'No Data to Save!',
+                                style: TextStyle(
+                                  color: theme.snackBarTheme.actionTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Icon(Icons.error,
+                              color: theme
+                                  .colorScheme.error), 
+                        ],
+                      ),
+                      backgroundColor: theme.snackBarTheme.backgroundColor,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem<String>(
+                  value: 'share',
+                  child: ListTile(
+                    leading: Icon(Icons.share),
+                    title: Text('Share'),
+                  ),
                 ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'refresh',
-                child: ListTile(
-                  leading: Icon(Icons.refresh),
-                  title: Text('Refresh'),
+                const PopupMenuItem<String>(
+                  value: 'refresh',
+                  child: ListTile(
+                    leading: Icon(Icons.refresh),
+                    title: Text('Refresh'),
+                  ),
                 ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'delete',
-                child: ListTile(
-                  leading: Icon(Icons.delete),
-                  title: Text('Delete'),
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete),
+                    title: Text('Delete'),
+                  ),
                 ),
-              ),
-            ];
-          },
-        ),
-      ];
+                const PopupMenuItem<String>(
+                  value: 'save',
+                  child: ListTile(
+                    leading: Icon(Icons.save_alt),
+                    title: Text('Save'),
+                  ),
+                ),
+              ];
+            },
+          ),
+        ];
+      }
+      return [];
     }
-    return [];
-  }
 
     return Scaffold(
       appBar: AppBar(
@@ -109,16 +150,16 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         ],
       ),
       body: PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          children: const [
-            MyDataPage(),
-            MyTablePage(),
-            MyHomePage(),
-            MySavedPage(),
-            MySettingsPage(),
-          ],
-        ),
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: [
+          const MyDataPage(),
+          const MyTablePage(),
+          const MyHomePage(),
+          MySavedPage(onChangeIndex: _onDestinationSelected),
+          const MySettingsPage(),
+        ],
+      ),
     );
   }
 

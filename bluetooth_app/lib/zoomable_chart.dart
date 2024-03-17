@@ -9,10 +9,12 @@ class ZoomableChart extends StatefulWidget {
   const ZoomableChart({
     super.key,
     required this.maxX,
+    required this.minX,
     required this.builder,
   });
 
   final double maxX;
+  final double minX;
   final Widget Function(double, double) builder;
 
   @override
@@ -29,7 +31,7 @@ class _ZoomableChartState extends State<ZoomableChart> {
   @override
   void initState() {
     super.initState();
-    minX = 0;
+    minX = widget.minX;
     maxX = widget.maxX;
   }
 
@@ -39,7 +41,7 @@ class _ZoomableChartState extends State<ZoomableChart> {
       onDoubleTap: () {
         setState(() {
           print(context);
-          minX = 0;
+          minX = widget.minX;
           maxX = widget.maxX;
         });
       },

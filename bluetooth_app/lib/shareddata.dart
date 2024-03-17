@@ -158,6 +158,9 @@ class SharedBluetoothData extends ChangeNotifier {
   int _prevTime2 = 0;
   int get prevTime2 => _prevTime2;
 
+  int _prevTimeActual = 0;
+  int get prevTimeActual => _prevTimeActual;
+
   int _largestTime = 0;
   int get largestTime => _largestTime;
 
@@ -523,12 +526,22 @@ class SharedBluetoothData extends ChangeNotifier {
     // Discard the last / partial line
     lines.removeLast();
 
+    // Remove any line that is a truncated subset of a previous line
+    for (int i = 1; i < lines.length; i++) {
+      if (lines[i - 1].contains(lines[i]) && lines[i] != "0") {
+        lines.removeAt(i);
+      }
+    }
+
     for (String line in lines) {
       if (line == '0') {
         // Single 0 is reboot
         // print('Reboot');
         rows.add(["Reboot"]);
         _nextDataAfterReboot = true;
+        _largestTime = prevTime;
+        _prevTime = 0;
+        _prevTime2 = 0;
       } else if (line.contains('Time')) {
         // Header: Time header found
         // print('Header: $line');
@@ -567,6 +580,18 @@ class SharedBluetoothData extends ChangeNotifier {
       } else {
         List<String> parts = line.split(',');
 
+        //All parts must have a value
+        try {
+          for (String s in parts) {
+            if (s == "") {
+              print('Invalid line: $line');
+              throw Exception('Invalid line: $line');
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+
         if (parts.length < headers.length) {
           print('Invalid line: $line $bytesProcessed');
         } else {
@@ -587,17 +612,14 @@ class SharedBluetoothData extends ChangeNotifier {
             continue;
           }
 
-          //Previous data is out of order so delete it
-          if (prevTime <= prevTime2 &&
-              prevTime2 <= intTime &&
-              rows.length > 2) {
-            rows.removeLast();
+          // If the current time is orders of magnitude different than what we expect, its likely an invalid line
+          if ((prevTime - prevTime2).abs() * 10 < (intTime - prevTimeActual).abs() &&
+              prevTime != 0 &&
+              prevTime2 != 0) {
             continue;
           }
 
-          if (intTime <= 1 && intTime >= 0) {
-            _largestTime = prevTime;
-          }
+          _prevTimeActual = intTime;
 
           intTime = intTime + largestTime;
 

@@ -144,6 +144,9 @@ class _MyDataPageState extends State<MyDataPage>
                   padding: const EdgeInsets.only(right: 16, left: 6),
                   child: ZoomableChart(
                     maxX: maxTime ?? 0,
+                    minX: readPoints.rows.isNotEmpty
+                        ? readPoints.rows[0][RowIndices.intTime].toDouble()
+                        : 0,
                     builder: (minX, maxX) {
                       List<LineChartBarData> lineBarsData =
                           List<LineChartBarData>.generate(
@@ -158,8 +161,9 @@ class _MyDataPageState extends State<MyDataPage>
                                   //Create discontinuity in graph to signify data reboot
                                   verticalLines.add(VerticalLine(
                                       x: watchPoints.rows[index - 1]
-                                              [RowIndices.intTime]
-                                          .toDouble() + 0.5,
+                                                  [RowIndices.intTime]
+                                              .toDouble() +
+                                          0.5,
                                       dashArray: [2, 4]));
                                   return FlSpot.nullSpot;
                                 }
@@ -284,22 +288,133 @@ class _MyDataPageState extends State<MyDataPage>
                   shrinkWrap: true,
                   itemCount: readPoints.headers.length - 1,
                   itemBuilder: (context, index) {
-                    return CheckboxListTile(
-                      title: Text(readPoints.headers[index + 1]),
-                      value: selectedButton[index],
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor:
-                          barColors?[index] ?? theme.colorScheme.onBackground,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedButton[index] = value!;
-                          if (value) {
-                            currHeaders.add(readPoints.headers[index + 1]);
-                          } else {
-                            currHeaders.remove(readPoints.headers[index + 1]);
-                          }
-                        });
-                      },
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: CheckboxListTile(
+                            title: Text(readPoints.headers[index + 1]),
+                            value: selectedButton[index],
+                            controlAffinity: ListTileControlAffinity.leading,
+                            activeColor: barColors?[index] ??
+                                theme.colorScheme.onBackground,
+                            onChanged: (value) {
+                              setState(() {
+                                selectedButton[index] = value!;
+                                if (value) {
+                                  currHeaders
+                                      .add(readPoints.headers[index + 1]);
+                                } else {
+                                  currHeaders
+                                      .remove(readPoints.headers[index + 1]);
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.info),
+                          onPressed: () {
+                            // Calculate mean, median, and mode
+                            String header = watchPoints.headers[index + 1];
+                            List<double> values = [];
+
+                            // Collect all values corresponding to the header
+                            for (List<dynamic> row in readPoints.rows) {
+                              if (row[0] == "Reboot") {
+                                continue;
+                              }
+                              dynamic value =
+                                  row[readPoints.fullHeaders.indexOf(header)];
+                              if (value != null && value is String) {
+                                values.add(
+                                    value.isNotEmpty ? double.parse(value) : 0);
+                              }
+                            }
+
+                            // Calculate Mean
+                            double mean = values.isNotEmpty
+                                ? values.reduce((a, b) => a + b) / values.length
+                                : 0;
+
+                            // Calculate Median
+                            double median = 0;
+                            if (values.isNotEmpty) {
+                              values.sort();
+                              int middle = values.length ~/ 2;
+                              median = values.length.isEven
+                                  ? (values[middle - 1] + values[middle]) / 2.0
+                                  : values[middle];
+                            }
+
+                            // Calculate Mode
+                            int mode = 0;
+                            if (values.isNotEmpty) {
+                              Map<double, int> counts = {};
+                              values.forEach((element) {
+                                counts[element] = counts.containsKey(element)
+                                    ? counts[element]! + 1
+                                    : 1;
+                              });
+                              mode = counts.entries
+                                  .fold(counts.entries.first,
+                                      (a, b) => b.value > a.value ? b : a)
+                                  .key
+                                  .toInt();
+                            }
+
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text(
+                                    readPoints.headers[index + 1],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Mean: $mean',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Median: $median',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Mode: $mode',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text(
+                                        'Close',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     );
                   },
                 ),

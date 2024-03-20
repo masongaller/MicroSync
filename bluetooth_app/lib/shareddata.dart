@@ -483,7 +483,6 @@ class SharedBluetoothData extends ChangeNotifier {
   /// A block of data is ready to be parsed
   /// @private
   void parseData() {
-
     // Bytes processed always ends on a newline
     int index = (bytesProcessed / 16).floor();
     int offset = bytesProcessed % 16;
@@ -1121,7 +1120,8 @@ class SharedBluetoothData extends ChangeNotifier {
         // Initialize _headers without the first three elements of _fullHeaders
         _headers = List<String>.from(_fullHeaders.sublist(3));
         _indexOfTime = _headers.indexWhere((element) => element.contains('Time'));
-        _largestTime = rows[rows.length - 1][indexOfTime! + 3]; //First 3 elements are not data that is streamed from the micro:bit
+        _largestTime =
+            rows[rows.length - 1][indexOfTime! + 3]; //First 3 elements are not data that is streamed from the micro:bit
         notifyListeners();
       } else {
         print('Invalid data format: ${file.path}');

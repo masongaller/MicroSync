@@ -14,8 +14,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage>
-    with AutomaticKeepAliveClientMixin<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMixin<MyHomePage> {
   String _currText = "Scan";
   Icon _currIcon = const Icon(Icons.bluetooth_disabled);
   bool _disconnected = true;
@@ -23,16 +22,14 @@ class _MyHomePageState extends State<MyHomePage>
   Future<void> _connectOrDisconnect(readBLE) async {
     bool isBluetoothSupported = await FlutterBluePlus.isSupported;
 
-    var subscription =
-        FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
+    var subscription = FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
       if (state == BluetoothAdapterState.on) {
         if (isBluetoothSupported) {
           _handleBluetoothOn(readBLE);
         } else {
           _handleBluetoothOff(readBLE);
         }
-      }
-      else {
+      } else {
         readBLE.bluetoothDisabled();
       }
     });
@@ -90,65 +87,61 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   Future<void> promptPassword(readBLE) async {
-  String enteredPassword = ""; // Variable to store the entered password
+    String enteredPassword = ""; // Variable to store the entered password
 
-  return showCupertinoDialog<void>(
-    context: context,
-    builder: (BuildContext context) {
-      return CupertinoAlertDialog(
-        title: const Text('Password Required'),
-        content: Column(
-          children: <Widget>[
-            const Text(
-                'To access this micro:bit, please enter the password you set in the makecode editor.'),
-            CupertinoTextField(
-              placeholder: 'Password',
-              obscureText: true,
-              onChanged: (value) {
-                enteredPassword =
-                    value; // Update the entered password as the user types
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Password Required'),
+          content: Column(
+            children: <Widget>[
+              const Text('To access this micro:bit, please enter the password you set in the makecode editor.'),
+              CupertinoTextField(
+                placeholder: 'Password',
+                obscureText: true,
+                onChanged: (value) {
+                  enteredPassword = value; // Update the entered password as the user types
+                },
+                style: const TextStyle(color: CupertinoColors.white), // Set text color
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () {
+                _connectOrDisconnect(readBLE);
+                Navigator.of(context).pop();
               },
-              style: const TextStyle(color: CupertinoColors.white), // Set text color
+            ),
+            CupertinoDialogAction(
+              child: const Text('Submit'),
+              onPressed: () {
+                // Handle the entered password as needed
+                readBLE.password = enteredPassword;
+                readBLE.sendAuthorization(enteredPassword);
+                Navigator.of(context).pop();
+              },
             ),
           ],
-        ),
-        actions: <Widget>[
-          CupertinoDialogAction(
-            child: const Text('Cancel'),
-            onPressed: () {
-              _connectOrDisconnect(readBLE);
-              Navigator.of(context).pop();
-            },
-          ),
-          CupertinoDialogAction(
-            child: const Text('Submit'),
-            onPressed: () {
-              // Handle the entered password as needed
-              readBLE.password = enteredPassword;
-              readBLE.sendAuthorization(enteredPassword);
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context); // Invoke the overridden method
-    
-    final watchBLE = context.watch<
-        SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
-    final readBLE = context.read<
-        SharedBluetoothData>(); //To modify the data without rebuilding the widget
+
+    final watchBLE = context
+        .watch<SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+    final readBLE = context.read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     var theme = Theme.of(context);
 
     // listen for password prompt
-    var subscription = watchBLE.addListener(() async { 
+    var subscription = watchBLE.addListener(() async {
       if (watchBLE.needPasswordPrompt) {
         watchBLE.needPasswordPrompt = false;
         await promptPassword(readBLE);
@@ -178,10 +171,8 @@ class _MyHomePageState extends State<MyHomePage>
                     return Card(
                         child: ListTile(
                             leading: const Icon(Icons.bluetooth),
-                            title: Text(watchBLE.devices[index].platformName
-                                .toString()),
-                            subtitle: Text(
-                                watchBLE.devices[index].remoteId.toString()),
+                            title: Text(watchBLE.devices[index].platformName.toString()),
+                            subtitle: Text(watchBLE.devices[index].remoteId.toString()),
                             trailing: ElevatedButton(
                               onPressed: () async {
                                 watchBLE.connectDevice(index);

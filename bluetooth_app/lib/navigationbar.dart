@@ -35,10 +35,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
               } else if (value == 'delete') {
                 context.read<SharedBluetoothData>().sendErase();
               } else if (value == 'save') {
-                if (context
-                    .read<SharedBluetoothData>()
-                    .fullHeaders
-                    .isNotEmpty) {
+                if (context.read<SharedBluetoothData>().fullHeaders.isNotEmpty) {
                   context.read<SharedBluetoothData>().promptFileName(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -46,9 +43,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                       content: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.error,
-                              color: theme
-                                  .colorScheme.error),
+                          Icon(Icons.error, color: theme.colorScheme.error),
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -60,9 +55,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                               ),
                             ],
                           ),
-                          Icon(Icons.error,
-                              color: theme
-                                  .colorScheme.error), 
+                          Icon(Icons.error, color: theme.colorScheme.error),
                         ],
                       ),
                       backgroundColor: theme.snackBarTheme.backgroundColor,
@@ -125,13 +118,9 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         elevation: 0,
         destinations: const <Widget>[
           NavigationDestination(
-              selectedIcon: Icon(Icons.analytics),
-              icon: Icon(Icons.analytics_outlined),
-              label: "Graph"),
+              selectedIcon: Icon(Icons.analytics), icon: Icon(Icons.analytics_outlined), label: "Graph"),
           NavigationDestination(
-              selectedIcon: Icon(Icons.table_rows),
-              icon: Icon(Icons.table_rows_outlined),
-              label: "Table"),
+              selectedIcon: Icon(Icons.table_rows), icon: Icon(Icons.table_rows_outlined), label: "Table"),
           NavigationDestination(
             selectedIcon: Icon(Icons.bluetooth),
             icon: Icon(Icons.bluetooth_outlined),

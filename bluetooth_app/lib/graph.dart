@@ -15,8 +15,7 @@ class MyDataPage extends StatefulWidget {
   State<MyDataPage> createState() => _MyDataPageState();
 }
 
-class _MyDataPageState extends State<MyDataPage>
-    with AutomaticKeepAliveClientMixin<MyDataPage> {
+class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMixin<MyDataPage> {
   List<bool> selectedButton = [];
   List<Color>? barColors;
   Icon playPauseIcon = const Icon(Icons.pause);
@@ -29,10 +28,9 @@ class _MyDataPageState extends State<MyDataPage>
     super.build(context); // Invoke the overridden method
 
     var theme = Theme.of(context);
-    final watchPoints = context.watch<
-        SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
-    final readPoints = context.read<
-        SharedBluetoothData>(); //To modify the data without rebuilding the widget
+    final watchPoints = context
+        .watch<SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
+    final readPoints = context.read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     List<VerticalLine> verticalLines = [];
 
@@ -79,9 +77,7 @@ class _MyDataPageState extends State<MyDataPage>
           for (int i = 0; i < currHeaders.length; i++) {
             String header = currHeaders[i];
             dynamic value = row[readPoints.fullHeaders.indexOf(header)];
-            double yValue = (value is double || value is int)
-                ? value.toDouble()
-                : double.parse(value.toString());
+            double yValue = (value is double || value is int) ? value.toDouble() : double.parse(value.toString());
 
             if (maxY == 0 || yValue > maxY) {
               maxY = yValue;
@@ -144,12 +140,9 @@ class _MyDataPageState extends State<MyDataPage>
                   padding: const EdgeInsets.only(right: 16, left: 6),
                   child: ZoomableChart(
                     maxX: maxTime ?? 0,
-                    minX: readPoints.rows.isNotEmpty
-                        ? readPoints.rows[0][RowIndices.intTime].toDouble()
-                        : 0,
+                    minX: readPoints.rows.isNotEmpty ? readPoints.rows[0][RowIndices.intTime].toDouble() : 0,
                     builder: (minX, maxX) {
-                      List<LineChartBarData> lineBarsData =
-                          List<LineChartBarData>.generate(
+                      List<LineChartBarData> lineBarsData = List<LineChartBarData>.generate(
                         watchPoints.headers.length - 1,
                         (barIndex) {
                           String header = watchPoints.headers[barIndex + 1];
@@ -160,25 +153,17 @@ class _MyDataPageState extends State<MyDataPage>
                                 if (watchPoints.rows[index][0] == "Reboot") {
                                   //Create discontinuity in graph to signify data reboot
                                   verticalLines.add(VerticalLine(
-                                      x: watchPoints.rows[index - 1]
-                                                  [RowIndices.intTime]
-                                              .toDouble() +
-                                          0.5,
+                                      x: watchPoints.rows[index - 1][RowIndices.intTime].toDouble() + 0.5,
                                       dashArray: [2, 4]));
                                   return FlSpot.nullSpot;
                                 }
-                                dynamic value = watchPoints.rows[index]
-                                    [watchPoints.fullHeaders.indexOf(header)];
-                                double yValue = (value is double ||
-                                        value is int)
-                                    ? value
-                                        .toDouble() // Already a double or int, no need to parse
-                                    : double.parse(value
-                                        .toString()); // Parse if it's a String
+                                dynamic value = watchPoints.rows[index][watchPoints.fullHeaders.indexOf(header)];
+                                double yValue = (value is double || value is int)
+                                    ? value.toDouble() // Already a double or int, no need to parse
+                                    : double.parse(value.toString()); // Parse if it's a String
 
                                 return FlSpot(
-                                  watchPoints.rows[index][RowIndices.intTime]
-                                      .toDouble(),
+                                  watchPoints.rows[index][RowIndices.intTime].toDouble(),
                                   yValue,
                                 );
                               },
@@ -188,8 +173,7 @@ class _MyDataPageState extends State<MyDataPage>
                             isStrokeCapRound: true,
                             dotData: const FlDotData(show: true),
                             belowBarData: BarAreaData(show: false),
-                            color: barColors?[barIndex] ??
-                                theme.colorScheme.onBackground,
+                            color: barColors?[barIndex] ?? theme.colorScheme.onBackground,
                           );
                         },
                       );
@@ -219,12 +203,9 @@ class _MyDataPageState extends State<MyDataPage>
                           borderData: FlBorderData(
                             show: true,
                             border: Border(
-                              bottom: BorderSide(
-                                  color: theme.dividerColor.withOpacity(0.2),
-                                  width: 4),
+                              bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 4),
                               left: const BorderSide(color: Colors.transparent),
-                              right:
-                                  const BorderSide(color: Colors.transparent),
+                              right: const BorderSide(color: Colors.transparent),
                               top: const BorderSide(color: Colors.transparent),
                             ),
                           ),
@@ -251,15 +232,10 @@ class _MyDataPageState extends State<MyDataPage>
                                   ).toList();
                                 },
                               ),
-                              getTouchedSpotIndicator:
-                                  (LineChartBarData barData,
-                                      List<int> indicators) {
+                              getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {
                                 return indicators.map(
                                   (int index) {
-                                    final line = FlLine(
-                                        color: theme.dividerColor,
-                                        strokeWidth: 1,
-                                        dashArray: [2, 4]);
+                                    final line = FlLine(color: theme.dividerColor, strokeWidth: 1, dashArray: [2, 4]);
                                     return TouchedSpotIndicatorData(
                                       line,
                                       const FlDotData(show: false),
@@ -295,17 +271,14 @@ class _MyDataPageState extends State<MyDataPage>
                             title: Text(readPoints.headers[index + 1]),
                             value: selectedButton[index],
                             controlAffinity: ListTileControlAffinity.leading,
-                            activeColor: barColors?[index] ??
-                                theme.colorScheme.onBackground,
+                            activeColor: barColors?[index] ?? theme.colorScheme.onBackground,
                             onChanged: (value) {
                               setState(() {
                                 selectedButton[index] = value!;
                                 if (value) {
-                                  currHeaders
-                                      .add(readPoints.headers[index + 1]);
+                                  currHeaders.add(readPoints.headers[index + 1]);
                                 } else {
-                                  currHeaders
-                                      .remove(readPoints.headers[index + 1]);
+                                  currHeaders.remove(readPoints.headers[index + 1]);
                                 }
                               });
                             },
@@ -323,27 +296,22 @@ class _MyDataPageState extends State<MyDataPage>
                               if (row[0] == "Reboot") {
                                 continue;
                               }
-                              dynamic value =
-                                  row[readPoints.fullHeaders.indexOf(header)];
+                              dynamic value = row[readPoints.fullHeaders.indexOf(header)];
                               if (value != null && value is String) {
-                                values.add(
-                                    value.isNotEmpty ? double.parse(value) : 0);
+                                values.add(value.isNotEmpty ? double.parse(value) : 0);
                               }
                             }
 
                             // Calculate Mean
-                            double mean = values.isNotEmpty
-                                ? values.reduce((a, b) => a + b) / values.length
-                                : 0;
+                            double mean = values.isNotEmpty ? values.reduce((a, b) => a + b) / values.length : 0;
 
                             // Calculate Median
                             double median = 0;
                             if (values.isNotEmpty) {
                               values.sort();
                               int middle = values.length ~/ 2;
-                              median = values.length.isEven
-                                  ? (values[middle - 1] + values[middle]) / 2.0
-                                  : values[middle];
+                              median =
+                                  values.length.isEven ? (values[middle - 1] + values[middle]) / 2.0 : values[middle];
                             }
 
                             // Calculate Mode
@@ -351,13 +319,10 @@ class _MyDataPageState extends State<MyDataPage>
                             if (values.isNotEmpty) {
                               Map<double, int> counts = {};
                               values.forEach((element) {
-                                counts[element] = counts.containsKey(element)
-                                    ? counts[element]! + 1
-                                    : 1;
+                                counts[element] = counts.containsKey(element) ? counts[element]! + 1 : 1;
                               });
                               mode = counts.entries
-                                  .fold(counts.entries.first,
-                                      (a, b) => b.value > a.value ? b : a)
+                                  .fold(counts.entries.first, (a, b) => b.value > a.value ? b : a)
                                   .key
                                   .toInt();
                             }
@@ -375,8 +340,7 @@ class _MyDataPageState extends State<MyDataPage>
                                   ),
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       SizedBox(height: 8),
                                       Text(

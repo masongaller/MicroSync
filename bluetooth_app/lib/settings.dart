@@ -9,8 +9,7 @@ class MySettingsPage extends StatefulWidget {
   State<MySettingsPage> createState() => _MySettingsPageState();
 }
 
-class _MySettingsPageState extends State<MySettingsPage>
-    with AutomaticKeepAliveClientMixin<MySettingsPage> {
+class _MySettingsPageState extends State<MySettingsPage> with AutomaticKeepAliveClientMixin<MySettingsPage> {
   List<bool> _selected = [true];
 
   String get currentTheme => _selected[0] ? "Dark Mode" : "Light Mode";
@@ -27,16 +26,14 @@ class _MySettingsPageState extends State<MySettingsPage>
     await Future.delayed(Duration.zero);
 
     setState(() {
-      _selected = [
-        MediaQuery.of(context).platformBrightness == Brightness.dark
-      ];
+      _selected = [MediaQuery.of(context).platformBrightness == Brightness.dark];
     });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context); // Invoke the overridden method
-    
+
     final ThemeData theme = Theme.of(context);
     final readTheme = context.read<ThemeFlip>();
 
@@ -46,8 +43,7 @@ class _MySettingsPageState extends State<MySettingsPage>
           child: Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

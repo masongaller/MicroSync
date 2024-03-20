@@ -18,10 +18,10 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  static final _defaultDarkColorScheme = ColorScheme.fromSwatch(
-      primarySwatch: Colors.deepPurple, brightness: Brightness.dark);
-  static final _defaultLightColorScheme = ColorScheme.fromSwatch(
-      primarySwatch: Colors.indigo, brightness: Brightness.light);
+  static final _defaultDarkColorScheme =
+      ColorScheme.fromSwatch(primarySwatch: Colors.deepPurple, brightness: Brightness.dark);
+  static final _defaultLightColorScheme =
+      ColorScheme.fromSwatch(primarySwatch: Colors.indigo, brightness: Brightness.light);
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +50,7 @@ class ThemeFlip extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
 
   void toggleTheme() {
-    _themeMode =
-        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 }

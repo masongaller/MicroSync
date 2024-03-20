@@ -13,20 +13,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// @fileoverview JavaScript functions for interacting with micro:bit microcontrollers over WebBluetooth
 /// (Only works in Chrome browsers;  Pages must be either HTTPS or local)
 
-const onDataTIMEOUT =
-    1000; // Timeout after 1 second of no data (and expecting more)
+const onDataTIMEOUT = 1000; // Timeout after 1 second of no data (and expecting more)
 const dataBurstSIZE = 100; // Number of packets to request at in a burst
-const progressPacketThreshold =
-    10; // More than 10 packets and report progress of transfer
+const progressPacketThreshold = 10; // More than 10 packets and report progress of transfer
 
 /// @constant {string} serviceUUID - UUID of the micro:bit service
 const serviceUUID = "accb4ce4-8a4b-11ed-a1eb-0242ac120002"; // BLE Service
 const Map<String, String> serviceCharacteristics = {
-  "accb4f64-8a4b-11ed-a1eb-0242ac120002":
-      "securityChar", // Security   Read, Notify
+  "accb4f64-8a4b-11ed-a1eb-0242ac120002": "securityChar", // Security   Read, Notify
   "accb50a4-8a4b-11ed-a1eb-0242ac120002": "passphraseChar", // Passphrase Write
-  "accb520c-8a4b-11ed-a1eb-0242ac120002":
-      "dataLenChar", // Data Length    Read, Notify
+  "accb520c-8a4b-11ed-a1eb-0242ac120002": "dataLenChar", // Data Length    Read, Notify
   "accb53ba-8a4b-11ed-a1eb-0242ac120002": "dataChar", // Data    Notify
   "accb552c-8a4b-11ed-a1eb-0242ac120002": "dataReqChar", // Data Request   Write
   "accb5946-8a4b-11ed-a1eb-0242ac120002": "eraseChar", // Erase   Write
@@ -42,8 +38,7 @@ class RetrieveTask {
   bool finalTask; // Indicator of the final bundle for request
   Function? success; // Callback function for success (completion)
 
-  RetrieveTask(this.start, int length,
-      {this.progress = -1, required this.finalTask, this.success})
+  RetrieveTask(this.start, int length, {this.progress = -1, required this.finalTask, this.success})
       : processed = 0,
         segments = List<dynamic>.filled(length, null, growable: false) {
     segments = List<dynamic>.filled(length, null, growable: false);
@@ -205,8 +200,7 @@ class SharedBluetoothData extends ChangeNotifier {
       for (var c in password.runes) {
         dv.setUint8(i++, c);
       }
-      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()),
-          withoutResponse: true);
+      passphraseChar?.write(Uint8List.fromList(dv.buffer.asUint8List()), withoutResponse: true);
       _password = password;
       _needPasswordPrompt = false;
     }
@@ -232,8 +226,7 @@ class SharedBluetoothData extends ChangeNotifier {
   Future<void> initializeServicesAndCharacteristics() async {
     List<BluetoothService> services = await device!.discoverServices();
 
-    services =
-        services.where((u) => u.serviceUuid.toString() == serviceUUID).toList();
+    services = services.where((u) => u.serviceUuid.toString() == serviceUUID).toList();
 
     if (services.isNotEmpty && device != null) {
       BluetoothService service = services.first;
@@ -248,8 +241,7 @@ class SharedBluetoothData extends ChangeNotifier {
   /// @param {BLECharacteristics} chars
   /// @param {BLEDevice} device
   /// @private
-  Future<void> onConnect(BluetoothService service,
-      List<BluetoothCharacteristic> chars, BluetoothDevice device) async {
+  Future<void> onConnect(BluetoothService service, List<BluetoothCharacteristic> chars, BluetoothDevice device) async {
     // Add identity values if not already set (neither expected to change)
     _id = device.remoteId;
     _name = device.platformName;
@@ -300,8 +292,7 @@ class SharedBluetoothData extends ChangeNotifier {
     notifyListeners();
 
     // listen for disconnection
-    var subscription =
-        device.connectionState.listen((BluetoothConnectionState state) async {
+    var subscription = device.connectionState.listen((BluetoothConnectionState state) async {
       if (state == BluetoothConnectionState.disconnected) {
         // 1. typically, start a periodic timer that tries to
         //    reconnect, or just call connect() again right now
@@ -442,13 +433,11 @@ class SharedBluetoothData extends ChangeNotifier {
       // Get the index of the last known value (since the last update)
       // floor(n/16) = index of the last full segment
       // ceil(n/16) = index of the last segment total (or count of total segments)
-      int lastIndex =
-          (dataLength / 16).floor(); // Index of first non-full segment
+      int lastIndex = (dataLength / 16).floor(); // Index of first non-full segment
       int totalSegments = (length / 16).ceil(); // Total segments now
       _dataLength = length;
       // Retrieve checks dataLength; Must update it first;
-      retrieveChunk(
-          lastIndex, totalSegments - lastIndex, onConnectionSyncCompleted);
+      retrieveChunk(lastIndex, totalSegments - lastIndex, onConnectionSyncCompleted);
     }
   }
 
@@ -463,11 +452,8 @@ class SharedBluetoothData extends ChangeNotifier {
       // Valid index, wtc time is null
       while (start >= 0 && rows[start][2] == null) {
         // Until a "Reboot" or another time is set
-        int sampleTime =
-            mbRebootTime! + ((rows[start][3] as int) * 1000).round();
-        String timeString = DateTime.fromMillisecondsSinceEpoch(sampleTime)
-            .toUtc()
-            .toIso8601String();
+        int sampleTime = mbRebootTime! + ((rows[start][3] as int) * 1000).round();
+        String timeString = DateTime.fromMillisecondsSinceEpoch(sampleTime).toUtc().toIso8601String();
         // print('Setting time for row $start to $timeString');
         rows[start][2] = timeString;
         updatedRow(start);
@@ -497,16 +483,10 @@ class SharedBluetoothData extends ChangeNotifier {
   /// A block of data is ready to be parsed
   /// @private
   void parseData() {
-    // print('parseData');
 
     // Bytes processed always ends on a newline
     int index = (bytesProcessed / 16).floor();
     int offset = bytesProcessed % 16;
-
-    //Correct for offset being off by 1
-    // if (offset != 0 && index != 0) {
-    //   offset = offset - 1;
-    // }
 
     offset = 0;
 
@@ -547,36 +527,29 @@ class SharedBluetoothData extends ChangeNotifier {
         // print('Header: $line');
         List<String> parts = line.split(',');
 
-        if (parts.length != headers.length) {
-          // New Header!
-          _headers = parts;
-          _indexOfTime =
-              parts.indexWhere((element) => element.contains('Time'));
+        // New Header!
+        _headers = parts;
+        _indexOfTime = parts.indexWhere((element) => element.contains('Time'));
 
-          _fullHeaders = [
-            'Microbit Label',
-            'Reboot Before Data',
-            'Time (local)'
-          ];
+        _fullHeaders = ['Microbit Label', 'Reboot Before Data', 'Time (local)'];
 
-          if (indexOfTime == -1) {
-            fullHeaders.addAll(parts);
-          } else {
-            // Time then data
-            fullHeaders.add(parts[indexOfTime!]);
-            fullHeaders.addAll(parts.sublist(0, indexOfTime));
-            fullHeaders.addAll(parts.sublist(indexOfTime! + 1));
-          }
+        if (indexOfTime == -1) {
+          fullHeaders.addAll(parts);
+        } else {
+          // Time then data
+          fullHeaders.add(parts[indexOfTime!]);
+          fullHeaders.addAll(parts.sublist(0, indexOfTime));
+          fullHeaders.addAll(parts.sublist(indexOfTime! + 1));
+        }
 
-          // print('Full Headers now: $fullHeaders');
-          /**
+        // print('Full Headers now: $fullHeaders');
+        /**
          * @event headers-updated
          * @type {object}
          * @property {uBit} detail.device The device that has an update on the headers
          * @property {List<String>} detail.headers the new headers for the device
          */
-          notifyListeners();
-        }
+        notifyListeners();
       } else {
         List<String> parts = line.split(',');
 
@@ -604,7 +577,6 @@ class SharedBluetoothData extends ChangeNotifier {
               intTime = time.toInt();
             } catch (e) {
               print('Error parsing double: $e');
-              print(parts[indexOfTime!]);
             }
           }
 
@@ -613,9 +585,7 @@ class SharedBluetoothData extends ChangeNotifier {
           }
 
           // If the current time is orders of magnitude different than what we expect, its likely an invalid line
-          if ((prevTime - prevTime2).abs() * 10 < (intTime - prevTimeActual).abs() &&
-              prevTime != 0 &&
-              prevTime2 != 0) {
+          if ((prevTime - prevTime2).abs() * 10 < (intTime - prevTimeActual).abs() && prevTime != 0 && prevTime2 != 0) {
             continue;
           }
 
@@ -628,8 +598,7 @@ class SharedBluetoothData extends ChangeNotifier {
             continue;
           }
 
-          parts = List<String>.from(parts.sublist(0, indexOfTime)
-            ..addAll(parts.sublist(indexOfTime! + 1)));
+          parts = List<String>.from(parts.sublist(0, indexOfTime)..addAll(parts.sublist(indexOfTime! + 1)));
 
           // name, reboot, local time, time, data...
           List<dynamic> newRow = [
@@ -664,9 +633,7 @@ class SharedBluetoothData extends ChangeNotifier {
     }
 
     // Advance by total contents of lines and newlines
-    _bytesProcessed = _bytesProcessed +
-        lines.length +
-        lines.fold<int>(0, (a, b) => a + b.length);
+    _bytesProcessed = _bytesProcessed + lines.length + lines.fold<int>(0, (a, b) => a + b.length);
 
     // Notify any listeners
     for (int i = startRow; i < rows.length; i++) {
@@ -794,8 +761,7 @@ class SharedBluetoothData extends ChangeNotifier {
       processChunk(retrieve);
     } else {
       // Advance to the next missing packet
-      while (retrieve.processed < retrieve.segments.length &&
-          retrieve.segments[retrieve.processed] != null) {
+      while (retrieve.processed < retrieve.segments.length && retrieve.segments[retrieve.processed] != null) {
         retrieve.processed = retrieve.processed + 1;
       }
 
@@ -860,10 +826,8 @@ class SharedBluetoothData extends ChangeNotifier {
       if (segmentIndex == retrieve.processed) retrieve.processed++;
 
       if (retrieve.segments[segmentIndex] != null) {
-        print(
-            'ERROR:  Segment already set $segmentIndex: "${retrieve.segments[segmentIndex]}" "$text" ');
-        if (retrieve.segments[segmentIndex].length != text.length &&
-            retrieve.segments[segmentIndex] != text) {
+        print('ERROR:  Segment already set $segmentIndex: "${retrieve.segments[segmentIndex]}" "$text" ');
+        if (retrieve.segments[segmentIndex].length != text.length && retrieve.segments[segmentIndex] != text) {
           print('Segment is ok (duplicate / overlap)');
         } else {
           print('Duplicate segment');
@@ -872,8 +836,7 @@ class SharedBluetoothData extends ChangeNotifier {
       if (segmentIndex >= 0 && segmentIndex < retrieve.segments.length) {
         retrieve.segments[segmentIndex] = text;
       } else {
-        print(
-            'ERROR:  Segment out of range $segmentIndex (max ${retrieve.segments.length}');
+        print('ERROR:  Segment out of range $segmentIndex (max ${retrieve.segments.length}');
       }
       // }  // END Dropped packet test
 
@@ -1049,14 +1012,12 @@ class SharedBluetoothData extends ChangeNotifier {
     int remainingData = length;
     int thisRequest = 0;
     while (remainingData > 0) {
-      int thisLength =
-          [remainingData, dataBurstSIZE].reduce((a, b) => a < b ? a : b);
+      int thisLength = [remainingData, dataBurstSIZE].reduce((a, b) => a < b ? a : b);
       bool finalRequest = thisRequest == numBursts - 1;
       RetrieveTask newTask = RetrieveTask(
         start,
         thisLength,
-        progress:
-            progressIndicator ? ((thisRequest / numBursts) * 100).floor() : -1,
+        progress: progressIndicator ? ((thisRequest / numBursts) * 100).floor() : -1,
         finalTask: finalRequest,
         success: finalRequest ? success : null,
       );
@@ -1159,6 +1120,9 @@ class SharedBluetoothData extends ChangeNotifier {
 
         // Initialize _headers without the first three elements of _fullHeaders
         _headers = List<String>.from(_fullHeaders.sublist(3));
+        _indexOfTime = _headers.indexWhere((element) => element.contains('Time'));
+        _largestTime = rows[rows.length - 1][indexOfTime! + 3]; //First 3 elements are not data that is streamed from the micro:bit
+        notifyListeners();
       } else {
         print('Invalid data format: ${file.path}');
       }
@@ -1177,8 +1141,7 @@ class SharedBluetoothData extends ChangeNotifier {
           title: const Text('File Name'),
           content: Column(
             children: <Widget>[
-              const Text(
-                  'What would you like to name the file? (Do not include file extension ex. .json)'),
+              const Text('What would you like to name the file? (Do not include file extension ex. .json)'),
               CupertinoTextField(
                 placeholder: 'File Name',
                 obscureText: false,

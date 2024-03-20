@@ -5,7 +5,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class MySavedPage extends StatefulWidget {
-
   final Function(int) onChangeIndex;
   const MySavedPage({super.key, required this.onChangeIndex});
 
@@ -14,7 +13,7 @@ class MySavedPage extends StatefulWidget {
 }
 
 class _MySavedPageState extends State<MySavedPage> {
-  List<File> files = []; 
+  List<File> files = [];
 
   @override
   void initState() {
@@ -52,13 +51,11 @@ class _MySavedPageState extends State<MySavedPage> {
                   files.removeAt(index);
                   file.delete();
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${fileName} deleted')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${fileName} deleted')));
               },
               background: Container(color: Colors.red),
               child: GestureDetector(
                 onTap: () {
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Loading File: $fileName'),
@@ -67,7 +64,6 @@ class _MySavedPageState extends State<MySavedPage> {
                     ),
                   );
 
-                  
                   context.read<SharedBluetoothData>().readData(file);
                   widget.onChangeIndex(1); //Switch to the table page
                 },
@@ -117,9 +113,7 @@ class _MySavedPageState extends State<MySavedPage> {
       final fileNameParts = fileNameWithExtension.split('\x1F');
 
       // Remove the time part if it exists
-      final fileName = fileNameParts.isNotEmpty
-          ? fileNameParts.first
-          : fileNameWithExtension;
+      final fileName = fileNameParts.isNotEmpty ? fileNameParts.first : fileNameWithExtension;
 
       return fileName;
     }
@@ -131,17 +125,14 @@ class _MySavedPageState extends State<MySavedPage> {
     if (parts.length > 1) {
       final timeStringWithExtension = parts[1];
       final indexOfDot = timeStringWithExtension.lastIndexOf('.');
-      final timeString = indexOfDot != -1
-          ? timeStringWithExtension.substring(0, indexOfDot)
-          : timeStringWithExtension;
+      final timeString = indexOfDot != -1 ? timeStringWithExtension.substring(0, indexOfDot) : timeStringWithExtension;
 
       // Convert timeString to DateTime
       final dateTime = DateTime.parse(timeString);
 
       // Format DateTime to a shorter string
-      final formattedTime =
-          '${dateTime.year}-${_twoDigits(dateTime.month)}-${_twoDigits(dateTime.day)} ' +
-              '${_twoDigits(dateTime.hour)}:${_twoDigits(dateTime.minute)}:${_twoDigits(dateTime.second)}';
+      final formattedTime = '${dateTime.year}-${_twoDigits(dateTime.month)}-${_twoDigits(dateTime.day)} ' +
+          '${_twoDigits(dateTime.hour)}:${_twoDigits(dateTime.minute)}:${_twoDigits(dateTime.second)}';
 
       return formattedTime;
     }

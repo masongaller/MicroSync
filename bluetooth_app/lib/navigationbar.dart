@@ -31,12 +31,24 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
               if (value == 'share') {
                 context.read<SharedBluetoothData>().exportViaCSV();
               } else if (value == 'refresh') {
-                context.read<SharedBluetoothData>().refreshData();
+                if (context.read<SharedBluetoothData>().openedFile != null) {
+                  context.read<SharedBluetoothData>().promptRefresh(context);
+                } else {
+                  context.read<SharedBluetoothData>().refreshData();
+                }
               } else if (value == 'delete') {
-                context.read<SharedBluetoothData>().sendErase();
+                if (context.read<SharedBluetoothData>().openedFile != null) {
+                  context.read<SharedBluetoothData>().promptDeleteFile(context);
+                } else {
+                  context.read<SharedBluetoothData>().sendErase();
+                }
               } else if (value == 'save') {
                 if (context.read<SharedBluetoothData>().fullHeaders.isNotEmpty) {
-                  context.read<SharedBluetoothData>().promptFileName(context);
+                  if (context.read<SharedBluetoothData>().openedFile != null) {
+                    context.read<SharedBluetoothData>().promptOverwriteFile(context);
+                  } else {
+                    context.read<SharedBluetoothData>().promptFileName(context);
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -64,6 +76,36 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                   );
                 }
               }
+              else if (value == 'unload') {
+                  if (context.read<SharedBluetoothData>().openedFile != null) {
+                    context.read<SharedBluetoothData>().unloadFile();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Icon(Icons.error, color: theme.colorScheme.error),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'No Data to Unload!',
+                                  style: TextStyle(
+                                    color: theme.snackBarTheme.actionTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(Icons.error, color: theme.colorScheme.error),
+                          ],
+                        ),
+                        backgroundColor: theme.snackBarTheme.backgroundColor,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+              }
             },
             itemBuilder: (BuildContext context) {
               return [
@@ -78,7 +120,7 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                   value: 'refresh',
                   child: ListTile(
                     leading: Icon(Icons.refresh),
-                    title: Text('Refresh'),
+                    title: Text('Refetch Data'),
                   ),
                 ),
                 const PopupMenuItem<String>(
@@ -93,6 +135,13 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                   child: ListTile(
                     leading: Icon(Icons.save_alt),
                     title: Text('Save'),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'unload',
+                  child: ListTile(
+                    leading: Icon(Icons.bookmark_remove_rounded),
+                    title: Text('Unload File'),
                   ),
                 ),
               ];

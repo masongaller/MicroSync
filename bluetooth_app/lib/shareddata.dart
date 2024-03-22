@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:bluetooth_app/saved.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -163,6 +163,13 @@ class SharedBluetoothData extends ChangeNotifier {
   bool get needPasswordPrompt => _needPasswordPrompt;
   set needPasswordPrompt(bool value) {
     _needPasswordPrompt = value;
+    notifyListeners();
+  }
+
+  File? _openedFile = null;
+  File? get openedFile => _openedFile;
+  set openedFile(File? value) {
+    _openedFile = value;
     notifyListeners();
   }
 
@@ -398,6 +405,7 @@ class SharedBluetoothData extends ChangeNotifier {
     _prevTime = 0;
     _prevTime2 = 0;
     _largestTime = 0;
+    _openedFile = null;
 
     /**
    * @event graph-cleared
@@ -1083,7 +1091,13 @@ class SharedBluetoothData extends ChangeNotifier {
     Share.shareXFiles(files);
   }
 
-  void saveData(String fileName) async {
+  void saveData(String fileName, bool overwrite) async {
+    if (openedFile != null && overwrite) {
+      if (await openedFile!.exists()) {
+        await openedFile!.delete();
+      }
+    }
+
     final directory = await getApplicationDocumentsDirectory();
 
     String time = DateTime.now().toLocal().toString();
@@ -1099,6 +1113,8 @@ class SharedBluetoothData extends ChangeNotifier {
     final encodedData = jsonEncode(combinedData);
 
     await file.writeAsString(encodedData);
+
+    openedFile = file;
   }
 
   void readData(File file) async {
@@ -1129,6 +1145,11 @@ class SharedBluetoothData extends ChangeNotifier {
     } else {
       print('File not found: ${file.path}');
     }
+  }
+
+  void unloadFile() {
+    _openedFile = null;
+    refreshData();
   }
 
   Future<void> promptFileName(context) async {
@@ -1162,7 +1183,107 @@ class SharedBluetoothData extends ChangeNotifier {
             CupertinoDialogAction(
               child: const Text('Save'),
               onPressed: () {
-                saveData(fileName);
+                saveData(fileName, false);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> promptOverwriteFile(context) async {
+    String result = SaveHelperMethods.extractFileName(openedFile!.absolute.path);
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Overwrite File?'),
+          content: Column(
+            children: <Widget>[
+              Text('Would you like to overwrite the existing file named $result?'),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                promptFileName(context);
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Yes'),
+              onPressed: () {
+                saveData(result, true);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> promptRefresh(context) async {
+    String result = SaveHelperMethods.extractFileName(openedFile!.absolute.path);
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Warning!'),
+          content: Column(
+            children: <Widget>[
+              Text('This will unload all data from saved file $result, and refetch all data from the micro:bit. Are you sure you want to continue?'),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Yes'),
+              onPressed: () {
+                refreshData();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> promptDeleteFile(context) async {
+    String result = SaveHelperMethods.extractFileName(openedFile!.absolute.path);
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Delete File?'),
+          content: Column(
+            children: <Widget>[
+              Text('Would you also like to delete the file $result?'),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('No'),
+              onPressed: () {
+                sendErase();
+                Navigator.of(context).pop();
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Yes'),
+              onPressed: () {
+                openedFile!.delete();
+                sendErase();
+                openedFile = null;
                 Navigator.of(context).pop();
               },
             ),

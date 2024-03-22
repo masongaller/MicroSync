@@ -42,7 +42,7 @@ class _MySavedPageState extends State<MySavedPage> {
           itemCount: files.length,
           itemBuilder: (context, index) {
             final file = files[index];
-            final fileName = extractFileName(file.path);
+            final fileName = SaveHelperMethods.extractFileName(file.path);
             final time = extractTime(file.path);
             return Dismissible(
               key: Key(file.path),
@@ -65,6 +65,7 @@ class _MySavedPageState extends State<MySavedPage> {
                   );
 
                   context.read<SharedBluetoothData>().readData(file);
+                  context.read<SharedBluetoothData>().openedFile = file;
                   widget.onChangeIndex(1); //Switch to the table page
                 },
                 child: ListTile(
@@ -106,20 +107,6 @@ class _MySavedPageState extends State<MySavedPage> {
     return filesInDirectory.map((entity) => File(entity.path)).toList();
   }
 
-  String extractFileName(String filePath) {
-    final List<String> parts = filePath.split('/');
-    if (parts.isNotEmpty) {
-      final fileNameWithExtension = parts.last;
-      final fileNameParts = fileNameWithExtension.split('\x1F');
-
-      // Remove the time part if it exists
-      final fileName = fileNameParts.isNotEmpty ? fileNameParts.first : fileNameWithExtension;
-
-      return fileName;
-    }
-    return filePath;
-  }
-
   String extractTime(String filePath) {
     final List<String> parts = filePath.split('\x1F');
     if (parts.length > 1) {
@@ -141,5 +128,21 @@ class _MySavedPageState extends State<MySavedPage> {
 
   String _twoDigits(int n) {
     return n >= 10 ? '$n' : '0$n';
+  }
+}
+
+class SaveHelperMethods {
+  static String extractFileName(String filePath) {
+    final List<String> parts = filePath.split('/');
+    if (parts.isNotEmpty) {
+      final fileNameWithExtension = parts.last;
+      final fileNameParts = fileNameWithExtension.split('\x1F');
+
+      // Remove the time part if it exists
+      final fileName = fileNameParts.isNotEmpty ? fileNameParts.first : fileNameWithExtension;
+
+      return fileName;
+    }
+    return filePath;
   }
 }

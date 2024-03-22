@@ -22,6 +22,8 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
   bool zoomable = true;
   List<String> currHeaders = [];
   double maxY = 0;
+  double storedMinX = 0;
+  double storedMaxX = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +144,9 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                     maxX: maxTime ?? 0,
                     minX: readPoints.rows.isNotEmpty ? readPoints.rows[0][RowIndices.intTime].toDouble() : 0,
                     builder: (minX, maxX) {
+                      storedMinX = minX;
+                      storedMaxX = maxX;
+
                       List<LineChartBarData> lineBarsData = List<LineChartBarData>.generate(
                         watchPoints.headers.length - 1,
                         (barIndex) {
@@ -244,7 +249,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                                 ).toList();
                               },
                               getTouchLineEnd: (_, __) => double.infinity),
-                          gridData: const FlGridData(show: true),
+                          gridData: FlGridData(show: true, verticalInterval: (storedMaxX - storedMinX) / 6),
                           minX: minX,
                           minY: 0,
                           maxX: maxX,
@@ -402,6 +407,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
   SideTitles get bottomTitles => SideTitles(
         showTitles: true,
         reservedSize: 32,
+        interval: (storedMaxX - storedMinX) / 6, //Only ever show 5 labels
         getTitlesWidget: bottomTitleWidgets,
       );
 
@@ -414,27 +420,33 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
   Widget bottomTitleWidgets(double value, TitleMeta meta) {
     const style = TextStyle(
       fontWeight: FontWeight.bold,
-      fontSize: 16,
     );
-    Widget text;
-    text = Text(value.toStringAsFixed(0), style: style);
+
+    // Do not show value at very left and right because of overlap
+    if (value == storedMinX || value == storedMaxX) {
+      return SizedBox();
+    }
 
     return SideTitleWidget(
       axisSide: meta.axisSide,
       space: 10,
-      child: text,
+      child: Text(value.toStringAsFixed(0), style: style),
     );
   }
 
   Widget leftTitleWidgets(double value, TitleMeta meta) {
     const style = TextStyle(
       fontWeight: FontWeight.bold,
-      fontSize: 16,
     );
     String text;
     text = value.toStringAsFixed(0);
 
-    return Text(text, style: style, textAlign: TextAlign.center);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(text, style: style),
+      ],
+    );
   }
 
   @override

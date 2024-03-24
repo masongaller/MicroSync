@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collection/collection.dart';
 
 /// @fileoverview JavaScript functions for interacting with micro:bit microcontrollers over WebBluetooth
 /// (Only works in Chrome browsers;  Pages must be either HTTPS or local)
@@ -1123,6 +1124,10 @@ class SharedBluetoothData extends ChangeNotifier {
       final decodedData = jsonDecode(fileContent);
 
       if (decodedData is Map<String, dynamic>) {
+        //Save all data already on device
+        List<List<dynamic>> currRows = rows;
+        List<String> currFullHeaders = fullHeaders;
+
         _fullHeaders = List<String>.from(decodedData['fullHeaders']);
 
         if (decodedData.containsKey('rows')) {
@@ -1138,6 +1143,34 @@ class SharedBluetoothData extends ChangeNotifier {
         _indexOfTime = _headers.indexWhere((element) => element.contains('Time'));
         _largestTime =
             rows[rows.length - 1][indexOfTime! + 3]; //First 3 elements are not data that is streamed from the micro:bit
+
+
+        // Readd data if its of the same type and size
+        if (currFullHeaders.equals(_fullHeaders)) {
+          //Readding the data should not be continuous with saved data.
+          rows.add(["Reboot"]);
+          int lastTime = 0;
+          int lastTimeCalculated = 0;
+          for (int i = 0; i < currRows.length; i++) {
+            List<dynamic> row = currRows[i];
+            int currTime = row[indexOfTime! + 3];
+
+            if (i > 0) {
+              int timeDifference = currTime - lastTime;
+              row[indexOfTime! + 3] = lastTimeCalculated + timeDifference;
+            } else {
+              // For the first row, set the time difference to 0
+              row[indexOfTime! + 3] = 0;
+            }
+
+            lastTime = currTime;
+            lastTimeCalculated = row[indexOfTime! + 3];
+
+            row[indexOfTime! + 3] += largestTime;
+            rows.add(row);
+          }
+        }
+
         notifyListeners();
       } else {
         print('Invalid data format: ${file.path}');
@@ -1235,7 +1268,8 @@ class SharedBluetoothData extends ChangeNotifier {
           title: const Text('Warning!'),
           content: Column(
             children: <Widget>[
-              Text('This will unload all data from saved file $result, and refetch all data from the micro:bit. Are you sure you want to continue?'),
+              Text(
+                  'This will unload all data from saved file $result, and refetch all data from the micro:bit. Are you sure you want to continue?'),
             ],
           ),
           actions: <Widget>[

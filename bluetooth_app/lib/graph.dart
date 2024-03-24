@@ -249,7 +249,24 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                                 ).toList();
                               },
                               getTouchLineEnd: (_, __) => double.infinity),
-                          gridData: FlGridData(show: true, verticalInterval: (storedMaxX - storedMinX) / 6),
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: true,
+                            drawHorizontalLine: true,
+                            verticalInterval: getInvervalSize(),
+                            getDrawingHorizontalLine: (value) {
+                              return FlLine(
+                                color: theme.dividerColor.withOpacity(0.2),
+                                strokeWidth: 1,
+                              );
+                            },
+                            getDrawingVerticalLine: (value) {
+                              return FlLine(
+                                color: theme.dividerColor.withOpacity(0.2),
+                                strokeWidth: 1,
+                              );
+                            },
+                          ),
                           minX: minX,
                           minY: 0,
                           maxX: maxX,
@@ -404,12 +421,23 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
     }
   }
 
-  SideTitles get bottomTitles => SideTitles(
-        showTitles: true,
-        reservedSize: 32,
-        interval: (storedMaxX - storedMinX) / 6, //Only ever show 5 labels
-        getTitlesWidget: bottomTitleWidgets,
-      );
+  getInvervalSize() {
+    double interval = (storedMaxX - storedMinX) / 6; // Calculate the initial interval
+    // Check if the interval is 0, set a minimum value to avoid division by zero
+    if (interval == 0) {
+      interval = 1;
+    }
+    return interval;
+  }
+
+  SideTitles get bottomTitles {
+    return SideTitles(
+      showTitles: true,
+      reservedSize: 32,
+      interval: getInvervalSize(),
+      getTitlesWidget: bottomTitleWidgets,
+    );
+  }
 
   SideTitles get leftTitles => SideTitles(
         getTitlesWidget: leftTitleWidgets,

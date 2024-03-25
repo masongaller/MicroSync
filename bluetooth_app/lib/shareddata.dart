@@ -1411,39 +1411,4 @@ class SharedBluetoothData extends ChangeNotifier {
     );
     return completer.future;
   }
-
-  Future<bool> promptMicrobitConnectOverwrite(context) async {
-    Completer<bool> completer = Completer<bool>();
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return CupertinoAlertDialog(
-          title: const Text('Overwrite Existing Data?'),
-          content: const Column(
-            children: <Widget>[
-              Text(
-                  'The data currently loaded is not the same as the incoming data from the micro:bit. Would you like to overwrite the current data with the incoming data from the micro:bit?'),
-            ],
-          ),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              child: const Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                completer.complete(false); // Resolve Future with false
-              },
-            ),
-            CupertinoDialogAction(
-              child: const Text('Yes'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                completer.complete(true); // Resolve Future with true
-              },
-            ),
-          ],
-        );
-      },
-    );
-    return completer.future;
-  }
 }

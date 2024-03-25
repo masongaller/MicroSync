@@ -5,6 +5,7 @@ import 'package:bluetooth_app/zoomable_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 //Graph Tool Tip Tutorial From https://blog.logrocket.com/build-beautiful-charts-flutter-fl-chart/#customizing-tooltip
 
@@ -52,10 +53,16 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
     if (watchPoints.fullHeaders.isNotEmpty) {
       //Only initialize it once
       if (selectedButton.isEmpty) {
+       barColors = generateRandomColors(watchPoints.headers.length);
+      }
+
+      if (selectedButton.isEmpty || !currHeaders.equals(watchPoints.headers.sublist(1))) {
         for (int i = 0; i < watchPoints.headers.length - 1; i++) {
           selectedButton.add(true);
         }
-        barColors = generateRandomColors(watchPoints.headers.length);
+      }
+
+      if (!currHeaders.equals(watchPoints.headers.sublist(1))) {
         currHeaders = readPoints.headers.sublist(1);
       }
 

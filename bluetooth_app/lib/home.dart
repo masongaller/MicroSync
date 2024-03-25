@@ -15,8 +15,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMixin<MyHomePage> {
-  String _currText = "Scan";
-  Icon _currIcon = const Icon(Icons.bluetooth_disabled);
   bool _disconnected = true;
 
   Future<void> _connectOrDisconnect(readBLE) async {
@@ -36,27 +34,18 @@ class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMi
   }
 
   void _handleBluetoothOn(readBLE) {
-    if (_currIcon.icon != Icons.bluetooth_disabled) {
+    if (!readBLE.disconnectedBool) {
       readBLE.onDisconnect();
     } else {
       readBLE.scanForDevices();
       _disconnected = true;
     }
-    _updateUI(Icons.bluetooth_disabled, "Scan");
   }
 
   void _handleBluetoothOff(readBLE) async {
     readBLE.bluetoothDisabled();
-    _updateUI(Icons.bluetooth_disabled, "Scan");
 
     await _bluetoothAlert();
-  }
-
-  void _updateUI(IconData icon, String text) {
-    setState(() {
-      _currIcon = Icon(icon);
-      _currText = text;
-    });
   }
 
   Future<void> _bluetoothAlert() async {
@@ -176,8 +165,6 @@ class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMi
                             trailing: ElevatedButton(
                               onPressed: () async {
                                 watchBLE.connectDevice(index);
-                                _currIcon = const Icon(Icons.bluetooth_connected);
-                                _currText = "Disconnect";
                                 _disconnected = false;
                               },
                               child: const Text('Connect'),
@@ -190,12 +177,12 @@ class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMi
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        label: Text(_currText),
+        label: Text(watchBLE.disconnectedBool ? 'Scan' : 'Disconnect'),
         onPressed: () {
           _connectOrDisconnect(readBLE);
         },
         tooltip: 'Connect Bluetooth Device',
-        icon: _currIcon,
+        icon: watchBLE.disconnectedBool ? const Icon(Icons.bluetooth_disabled) : const Icon(Icons.bluetooth_connected),
       ),
     );
   }

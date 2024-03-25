@@ -55,7 +55,7 @@ class _MySavedPageState extends State<MySavedPage> {
               },
               background: Container(color: Colors.red),
               child: GestureDetector(
-                onTap: () {
+                onTap: () async {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Loading File: $fileName'),
@@ -63,9 +63,8 @@ class _MySavedPageState extends State<MySavedPage> {
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
-
-                  context.read<SharedBluetoothData>().readData(file);
                   context.read<SharedBluetoothData>().openedFile = file;
+                  await context.read<SharedBluetoothData>().readData(file, context);
                   widget.onChangeIndex(1); //Switch to the table page
                 },
                 child: ListTile(

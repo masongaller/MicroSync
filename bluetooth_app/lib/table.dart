@@ -22,7 +22,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
     final readPoints = context.read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
 
     if (watchPoints.fullHeaders.isNotEmpty) {
-      if (initOnce) {
+      if (initOnce || visibleColumns.length != watchPoints.headers.length) {
         initOnce = false;
         visibleColumns = List.generate(watchPoints.headers.length, (index) => true);
       }

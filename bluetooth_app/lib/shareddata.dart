@@ -160,6 +160,9 @@ class SharedBluetoothData extends ChangeNotifier {
   int _largestTime = 0;
   int get largestTime => _largestTime;
 
+  List<List<dynamic>> _fileDataOnly = [];
+  List<List<dynamic>> get fileDataOnly => _fileDataOnly;
+
   bool _needPasswordPrompt = false;
   bool get needPasswordPrompt => _needPasswordPrompt;
   set needPasswordPrompt(bool value) {
@@ -407,6 +410,7 @@ class SharedBluetoothData extends ChangeNotifier {
     _prevTime2 = 0;
     _largestTime = 0;
     _openedFile = null;
+    _fileDataOnly = [];
 
     /**
    * @event graph-cleared
@@ -429,12 +433,10 @@ class SharedBluetoothData extends ChangeNotifier {
 
     int length = (valHigh << 24) | (valMed2 << 16) | (valMed1 << 8) | valLow;
 
-    // print('New Length: $length (was ${this.dataLength})');
-
     // If there's new data, update
     if (dataLength != length) {
       // Probably erased. Retrieve it all
-      if (length < dataLength) {
+      if (length + fileDataOnly.length < dataLength) {
         print('Log smaller than expected. Retrieving all data');
         refreshData();
       }
@@ -536,19 +538,29 @@ class SharedBluetoothData extends ChangeNotifier {
         List<String> parts = line.split(',');
 
         // New Header!
-        _headers = parts;
-        _indexOfTime = parts.indexWhere((element) => element.contains('Time'));
+        List<String> tempHeaders = parts;
+        int tempIndexOfTime = parts.indexWhere((element) => element.contains('Time'));
 
-        _fullHeaders = ['Microbit Label', 'Reboot Before Data', 'Time (local)'];
+        List<String> tempFullHeaders = ['Microbit Label', 'Reboot Before Data', 'Time (local)'];
 
         if (indexOfTime == -1) {
-          fullHeaders.addAll(parts);
+          tempFullHeaders.addAll(parts);
         } else {
           // Time then data
-          fullHeaders.add(parts[indexOfTime!]);
-          fullHeaders.addAll(parts.sublist(0, indexOfTime));
-          fullHeaders.addAll(parts.sublist(indexOfTime! + 1));
+          tempFullHeaders.add(parts[tempIndexOfTime]);
+          tempFullHeaders.addAll(parts.sublist(0, tempIndexOfTime));
+          tempFullHeaders.addAll(parts.sublist(tempIndexOfTime + 1));
         }
+
+        // If we currently have headers that are different overwrite them
+        // and reset data
+        if (!fullHeaders.equals(tempFullHeaders) && fullHeaders.isNotEmpty) {
+          _rows = [];
+        }
+
+        _headers = tempHeaders;
+        _indexOfTime = tempIndexOfTime;
+        _fullHeaders = tempFullHeaders;
 
         // print('Full Headers now: $fullHeaders');
         /**
@@ -597,9 +609,21 @@ class SharedBluetoothData extends ChangeNotifier {
             continue;
           }
 
+          int timeDifference = intTime - prevTimeActual;
+
           _prevTimeActual = intTime;
 
-          intTime = intTime + largestTime;
+          intTime = prevTime + timeDifference;
+
+          if (nextDataAfterReboot) {
+            intTime += largestTime;
+            intTime -= timeDifference;
+          }
+
+          //Always start at 0
+          if (rows.isEmpty) {
+            intTime = 0;
+          }
 
           //Dont add duplicate data
           if (prevTime == intTime && rows.isNotEmpty) {
@@ -922,9 +946,6 @@ class SharedBluetoothData extends ChangeNotifier {
     _eraseChar = null;
     _usageChar = null;
     _timeChar = null;
-    _prevTime = 0;
-    _prevTime2 = 0;
-    _largestTime = 0;
     // Update data to reflect what we actually have
     _dataLength = rawData.length > 1 ? (rawData.length - 1) * 16 : 0;
 
@@ -1118,7 +1139,7 @@ class SharedBluetoothData extends ChangeNotifier {
     openedFile = file;
   }
 
-  void readData(File file) async {
+  Future<void> readData(File file, context) async {
     if (await file.exists()) {
       final fileContent = await file.readAsString();
       final decodedData = jsonDecode(fileContent);
@@ -1130,10 +1151,22 @@ class SharedBluetoothData extends ChangeNotifier {
 
         _fullHeaders = List<String>.from(decodedData['fullHeaders']);
 
+        //If data is not the same type, prompt user what they would like to do
+        if (!_fullHeaders.equals(currFullHeaders)) {
+          if (!await promptFileLoadOverwrite(context)) {
+            _fullHeaders = currFullHeaders;
+            return;
+          } else {
+            //Disconnect the device because the data is not the same
+            onDisconnect();
+          }
+        }
+
         if (decodedData.containsKey('rows')) {
           _rows = List<List<dynamic>>.from(decodedData['rows'].map(
             (innerList) => List<dynamic>.from(innerList),
           ));
+          _fileDataOnly = _rows;
         } else {
           _rows = []; // No rows in the decoded data
         }
@@ -1144,7 +1177,6 @@ class SharedBluetoothData extends ChangeNotifier {
         _largestTime =
             rows[rows.length - 1][indexOfTime! + 3]; //First 3 elements are not data that is streamed from the micro:bit
 
-
         // Readd data if its of the same type and size
         if (currFullHeaders.equals(_fullHeaders)) {
           //Readding the data should not be continuous with saved data.
@@ -1152,6 +1184,10 @@ class SharedBluetoothData extends ChangeNotifier {
           int lastTime = 0;
           int lastTimeCalculated = 0;
           for (int i = 0; i < currRows.length; i++) {
+            if (currRows[i][0] == "Reboot") {
+              rows.add(currRows[i]);
+              continue;
+            }
             List<dynamic> row = currRows[i];
             int currTime = row[indexOfTime! + 3];
 
@@ -1171,6 +1207,19 @@ class SharedBluetoothData extends ChangeNotifier {
           }
         }
 
+        _largestTime = rows[rows.length - 1][indexOfTime! + 3];
+        int i = 1;
+        while (rows[rows.length - i][0] == "Reboot") {
+          i++;
+        }
+        _prevTime = rows[rows.length - i][indexOfTime! + 3];
+        i++;
+
+        while (rows[rows.length - i][0] == "Reboot") {
+          i++;
+        }
+        _prevTime2 = rows[rows.length - i][indexOfTime! + 3];
+
         notifyListeners();
       } else {
         print('Invalid data format: ${file.path}');
@@ -1181,7 +1230,6 @@ class SharedBluetoothData extends ChangeNotifier {
   }
 
   void unloadFile() {
-    _openedFile = null;
     refreshData();
   }
 
@@ -1318,6 +1366,7 @@ class SharedBluetoothData extends ChangeNotifier {
                 openedFile!.delete();
                 sendErase();
                 openedFile = null;
+                _fileDataOnly = [];
                 Navigator.of(context).pop();
               },
             ),
@@ -1325,5 +1374,76 @@ class SharedBluetoothData extends ChangeNotifier {
         );
       },
     );
+  }
+
+  Future<bool> promptFileLoadOverwrite(context) async {
+    Completer<bool> completer = Completer<bool>();
+    String result = SaveHelperMethods.extractFileName(openedFile!.absolute.path);
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Overwrite Existing Data?'),
+          content: Column(
+            children: <Widget>[
+              Text(
+                  'The file $result is of a different type or size than the current data. Would you like to overwrite the current data with the data from the file?'),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                completer.complete(false); // Resolve Future with false
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Yes'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                completer.complete(true); // Resolve Future with true
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return completer.future;
+  }
+
+  Future<bool> promptMicrobitConnectOverwrite(context) async {
+    Completer<bool> completer = Completer<bool>();
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Overwrite Existing Data?'),
+          content: const Column(
+            children: <Widget>[
+              Text(
+                  'The data currently loaded is not the same as the incoming data from the micro:bit. Would you like to overwrite the current data with the incoming data from the micro:bit?'),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                completer.complete(false); // Resolve Future with false
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Yes'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                completer.complete(true); // Resolve Future with true
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return completer.future;
   }
 }

@@ -19,6 +19,15 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
   String appBarTitle = "Connect";
   final PageController _pageController = PageController(initialPage: 2);
 
+  // Define a map to store help messages based on index
+  final Map<int, String> helpMessages = {
+    0: 'Help message for Graph',
+    1: 'Help message for Table',
+    2: 'Help message for Connect',
+    3: 'Help message for Saved',
+    4: 'Help message for Settings',
+  };
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -75,36 +84,35 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                     ),
                   );
                 }
-              }
-              else if (value == 'unload') {
-                  if (context.read<SharedBluetoothData>().openedFile != null) {
-                    context.read<SharedBluetoothData>().unloadFile();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(Icons.error, color: theme.colorScheme.error),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'No Data to Unload!',
-                                  style: TextStyle(
-                                    color: theme.snackBarTheme.actionTextColor,
-                                  ),
+              } else if (value == 'unload') {
+                if (context.read<SharedBluetoothData>().openedFile != null) {
+                  context.read<SharedBluetoothData>().unloadFile();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(Icons.error, color: theme.colorScheme.error),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'No Data to Unload!',
+                                style: TextStyle(
+                                  color: theme.snackBarTheme.actionTextColor,
                                 ),
-                              ],
-                            ),
-                            Icon(Icons.error, color: theme.colorScheme.error),
-                          ],
-                        ),
-                        backgroundColor: theme.snackBarTheme.backgroundColor,
-                        duration: const Duration(seconds: 2),
+                              ),
+                            ],
+                          ),
+                          Icon(Icons.error, color: theme.colorScheme.error),
+                        ],
                       ),
-                    );
-                  }
+                      backgroundColor: theme.snackBarTheme.backgroundColor,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               }
             },
             itemBuilder: (BuildContext context) {
@@ -152,12 +160,39 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
       return [];
     }
 
+    void helpActions(int index) {
+      // Retrieve the help message based on the index
+      String helpMessage = helpMessages[index] ?? "No help message found";
+      // Display the help message using a dialog or any other mechanism
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Help'),
+          content: Text(helpMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
         backgroundColor: theme.primaryColor,
         elevation: 0,
         actions: buildAppBarActions(currentPageIndex),
+        leading: IconButton(
+          icon: const Icon(Icons.help_outline),
+          onPressed: () {
+            helpActions(currentPageIndex);
+          },
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,

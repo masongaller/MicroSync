@@ -45,6 +45,7 @@ dependencies:
   path_provider: ^2.1.2
   data_table_2: ^2.5.11
   shared_preferences: ^2.0.0
+  tutorial_coach_mark: ^1.2.11
 
 dev_dependencies:
   flutter_test:

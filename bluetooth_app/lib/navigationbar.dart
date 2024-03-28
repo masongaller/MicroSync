@@ -160,27 +160,6 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
       return [];
     }
 
-    void helpActions(int index) {
-      // Retrieve the help message based on the index
-      String helpMessage = helpMessages[index] ?? "No help message found";
-      // Display the help message using a dialog or any other mechanism
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Help'),
-          content: Text(helpMessage),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
@@ -190,7 +169,24 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         leading: IconButton(
           icon: const Icon(Icons.help_outline),
           onPressed: () {
-            helpActions(currentPageIndex);
+            switch (currentPageIndex) {
+              case 0:
+              case 1:
+                if (context.read<SharedBluetoothData>().rows.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please Connect to the Microbit on the Connect Page to Fetch Data!'),
+                      duration: const Duration(seconds: 5),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                }
+                break;
+              default:
+                context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+            }
           },
         ),
       ),

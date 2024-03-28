@@ -6,6 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'dart:ui';
 
 //Graph Tool Tip Tutorial From https://blog.logrocket.com/build-beautiful-charts-flutter-fl-chart/#customizing-tooltip
 
@@ -22,9 +24,162 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
   Icon playPauseIcon = const Icon(Icons.pause);
   bool zoomable = true;
   List<String> currHeaders = [];
+  List<String> initializedHeaders = [];
   double maxY = 0;
   double storedMinX = 0;
   double storedMaxX = 0;
+
+  late TutorialCoachMark tutorialCoachMark;
+  GlobalKey keyPlayPause = GlobalKey();
+  GlobalKey infoButton = GlobalKey();
+  bool _isThemeInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure the theme is initialized only once
+    if (!_isThemeInitialized) {
+      // Access the theme and create tutorial only when dependencies change
+      createTutorial();
+      _isThemeInitialized = true;
+    }
+  }
+
+  void showTutorial(BuildContext context) {
+    tutorialCoachMark.show(context: context);
+  }
+
+  void createTutorial() {
+    ThemeData theme = Theme.of(context);
+    tutorialCoachMark = TutorialCoachMark(
+      targets: _createTargets(theme),
+      colorShadow: Theme.of(context).shadowColor,
+      textSkip: "SKIP",
+      paddingFocus: 10,
+      opacityShadow: 0.5,
+      imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      onSkip: () {
+        return true;
+      },
+    );
+  }
+
+  List<TargetFocus> _createTargets(ThemeData theme) {
+    List<TargetFocus> targets = [];
+
+    // Styling for the playPauseButton target
+    targets.add(TargetFocus(
+      identify: "playPauseButton",
+      keyTarget: keyPlayPause,
+      alignSkip: Alignment.topRight,
+      enableOverlayTab: true,
+      contents: [
+        TargetContent(
+          align: ContentAlign.bottom,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.primaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "Graph Control Button",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildInfoRow(
+                  Icons.pause,
+                  "When this symbol is present, you can use a horizontal pinch gesture to zoom in and out. You can also drag the graph horizontally.",
+                  theme,
+                ),
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                  Icons.play_arrow,
+                  "When this symbol is present, you can tap on specific data points to view their values. Dragging is also supported. A slow drag will switch between data points and a fast drag will move the graph.",
+                  theme,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "At any time, you can double tap the screen to reset the graph to its original state.",
+                  style: TextStyle(color: theme.colorScheme.onPrimary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ));
+
+    // Styling for the infoButton target
+    targets.add(TargetFocus(
+      identify: "infoButton",
+      keyTarget: infoButton,
+      alignSkip: Alignment.topRight,
+      enableOverlayTab: true,
+      contents: [
+        TargetContent(
+          align: ContentAlign.top,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.primaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "Data Info Button",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Click the info button to view the mean, median, and mode of the corresponding data set.",
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ));
+
+    return targets;
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, ThemeData theme) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: theme.colorScheme.onPrimary,
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: theme.colorScheme.onPrimary),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,16 +208,19 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
     if (watchPoints.fullHeaders.isNotEmpty) {
       //Only initialize it once
       if (selectedButton.isEmpty) {
-       barColors = generateRandomColors(watchPoints.headers.length);
-      }
-
-      if (selectedButton.isEmpty || !currHeaders.equals(watchPoints.headers.sublist(1))) {
+        barColors = generateRandomColors(watchPoints.headers.length);
         for (int i = 0; i < watchPoints.headers.length - 1; i++) {
           selectedButton.add(true);
         }
       }
 
-      if (!currHeaders.equals(watchPoints.headers.sublist(1))) {
+      //If the data changed, reset the selected buttons
+      if (!initializedHeaders.equals(watchPoints.headers.sublist(1))) {
+        selectedButton = [];
+        for (int i = 0; i < watchPoints.headers.length - 1; i++) {
+          selectedButton.add(true);
+        }
+        initializedHeaders = readPoints.headers.sublist(1);
         currHeaders = readPoints.headers.sublist(1);
       }
 
@@ -95,6 +253,11 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
         }
       }
 
+      if (watchPoints.showTutorial[0]) {
+        showTutorial(context);
+        watchPoints.showTutorial[0] = false;
+      }
+
       return Stack(
         children: <Widget>[
           Column(
@@ -110,6 +273,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                     child: Row(
                       children: [
                         IconButton(
+                          key: keyPlayPause,
                           icon: playPauseIcon,
                           onPressed: () {
                             zoomable = !zoomable;
@@ -165,6 +329,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                                 if (watchPoints.rows[index][0] == "Reboot") {
                                   //Create discontinuity in graph to signify data reboot
                                   verticalLines.add(VerticalLine(
+                                      color: theme.dividerColor.withOpacity(0.2),
                                       x: watchPoints.rows[index - 1][RowIndices.intTime].toDouble() + 0.5,
                                       dashArray: [2, 4]));
                                   return FlSpot.nullSpot;
@@ -314,6 +479,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                           ),
                         ),
                         IconButton(
+                          key: index == 0 ? infoButton : null,
                           icon: const Icon(Icons.info),
                           onPressed: () {
                             // Calculate mean, median, and mode

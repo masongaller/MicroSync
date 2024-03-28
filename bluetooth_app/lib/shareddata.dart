@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:bluetooth_app/saved.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -72,7 +73,7 @@ class SharedBluetoothData extends ChangeNotifier {
   BluetoothCharacteristic? _timeChar;
   BluetoothCharacteristic? get timeChar => _timeChar;
 
-  late BluetoothDevice? _device;
+  BluetoothDevice? _device;
   BluetoothDevice? get device => _device;
 
   final List<BluetoothDevice> _devices = [];
@@ -176,6 +177,8 @@ class SharedBluetoothData extends ChangeNotifier {
     _openedFile = value;
     notifyListeners();
   }
+
+  List<bool> showTutorial = [false, false, false, false, false];
 
   /// @param {number} start Start row (inclusive)
   /// @param {number} end End row (exclusive)
@@ -358,6 +361,7 @@ class SharedBluetoothData extends ChangeNotifier {
     final subscription2 = usageChar?.onValueReceived.listen((value) {
       onUsage(value);
     });
+    
     device!.cancelWhenDisconnected(subscription2!);
     await usageChar?.setNotifyValue(true);
 
@@ -496,9 +500,8 @@ class SharedBluetoothData extends ChangeNotifier {
   void parseData() {
     // Bytes processed always ends on a newline
     int index = (bytesProcessed / 16).floor();
-    int offset = bytesProcessed % 16;
 
-    offset = 0;
+    int offset = 0;
 
     //If this method is called with less than 16 bytes ignore it
     if (rawData[index].length < 16) {
@@ -698,13 +701,13 @@ class SharedBluetoothData extends ChangeNotifier {
   void savePassword() async {
     if (password != null) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString('password', password!);
+      prefs.setString(_id.str, password!);
     }
   }
 
   Future<void> getPassword() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? password = prefs.getString('password');
+    String? password = prefs.getString(_id.str);
     if (password != null) {
       _password = password;
     }
@@ -905,7 +908,9 @@ class SharedBluetoothData extends ChangeNotifier {
   }
 
   void onDisconnect() {
-    device!.disconnect();
+    if (device != null) {
+      device!.disconnect();
+    }
     _deviceName = "No device connected";
     _disconnectedBool = true;
     disconnected();
@@ -1159,6 +1164,7 @@ class SharedBluetoothData extends ChangeNotifier {
           } else {
             //Disconnect the device because the data is not the same
             onDisconnect();
+            _bytesProcessed = 0;
           }
         }
 
@@ -1250,7 +1256,7 @@ class SharedBluetoothData extends ChangeNotifier {
                 onChanged: (value) {
                   fileName = value;
                 },
-                style: const TextStyle(color: CupertinoColors.white),
+                style: TextStyle(color: Theme.of(context).focusColor),
               ),
             ],
           ),

@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:bluetooth_app/shareddata.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MyTablePage extends StatefulWidget {
   const MyTablePage({super.key});
@@ -12,6 +15,88 @@ class MyTablePage extends StatefulWidget {
 class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClientMixin<MyTablePage> {
   bool initOnce = true;
   List<bool> visibleColumns = [];
+
+  late TutorialCoachMark tutorialCoachMark;
+  GlobalKey keyColumnCollapse = GlobalKey();
+  bool _isThemeInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure the theme is initialized only once
+    if (!_isThemeInitialized) {
+      // Access the theme and create tutorial only when dependencies change
+      createTutorial();
+      _isThemeInitialized = true;
+    }
+  }
+
+  void showTutorial(BuildContext context) {
+    tutorialCoachMark.show(context: context);
+  }
+
+  void createTutorial() {
+    ThemeData theme = Theme.of(context);
+    tutorialCoachMark = TutorialCoachMark(
+      targets: _createTargets(theme),
+      colorShadow: Theme.of(context).shadowColor,
+      textSkip: "SKIP",
+      paddingFocus: 10,
+      opacityShadow: 0.5,
+      imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      onSkip: () {
+        return true;
+      },
+    );
+  }
+
+  List<TargetFocus> _createTargets(ThemeData theme) {
+    List<TargetFocus> targets = [];
+
+    // Styling for the infoButton target
+    targets.add(TargetFocus(
+      identify: "Collumn Collapse",
+      keyTarget: keyColumnCollapse,
+      alignSkip: Alignment.topRight,
+      enableOverlayTab: true,
+      contents: [
+        TargetContent(
+          align: ContentAlign.bottom,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.primaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "Column Collapse Button",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Clicking here will allows you to collapse the column to take up less space.",
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ));
+
+    return targets;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +110,11 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
       if (initOnce || visibleColumns.length != watchPoints.headers.length) {
         initOnce = false;
         visibleColumns = List.generate(watchPoints.headers.length, (index) => true);
+      }
+
+      if (watchPoints.showTutorial[1]) {
+        showTutorial(context);
+        watchPoints.showTutorial[1] = false;
       }
 
       return Scaffold(
@@ -45,6 +135,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
                     children: [
                       Icon(
                         !visibleColumns[index] ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                        key: index == 0 ? keyColumnCollapse : null,
                       ),
                       Visibility(
                         visible: visibleColumns[index],

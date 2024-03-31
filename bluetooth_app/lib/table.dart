@@ -82,7 +82,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  "Clicking here will allows you to collapse the column to take up less space.",
+                  "Clicking here will allow you to collapse the column to take up less space.",
                   style: TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 16,

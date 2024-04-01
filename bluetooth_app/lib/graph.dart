@@ -12,7 +12,8 @@ import 'dart:ui';
 //Graph Tool Tip Tutorial From https://blog.logrocket.com/build-beautiful-charts-flutter-fl-chart/#customizing-tooltip
 
 class MyDataPage extends StatefulWidget {
-  const MyDataPage({super.key});
+  const MyDataPage({super.key, required this.onChangeIndex});
+  final Function(int) onChangeIndex;
 
   @override
   State<MyDataPage> createState() => _MyDataPageState();

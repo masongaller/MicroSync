@@ -11,7 +11,8 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 //Used this guide to help me setup scanning and connecting to a bluetooth device
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  const MyHomePage({super.key, required this.onChangeIndex});
+  final Function(int) onChangeIndex;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();

@@ -181,11 +181,15 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                     ),
                   );
                 } else {
-                  context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                  setState(() {
+                    context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                  });
                 }
                 break;
               default:
-                context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                setState(() {
+                    context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                  });
             }
           },
         ),
@@ -222,11 +226,11 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
         controller: _pageController,
         onPageChanged: _onPageChanged,
         children: [
-          const MyDataPage(),
-          const MyTablePage(),
-          const MyHomePage(),
+          MyDataPage(onChangeIndex: _onDestinationSelected),
+          MyTablePage(onChangeIndex: _onDestinationSelected),
+          MyHomePage(onChangeIndex: _onDestinationSelected),
           MySavedPage(onChangeIndex: _onDestinationSelected),
-          const MySettingsPage(),
+          MySettingsPage(onChangeIndex: _onDestinationSelected),
         ],
       ),
     );

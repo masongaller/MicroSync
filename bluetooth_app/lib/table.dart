@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MyTablePage extends StatefulWidget {
-  const MyTablePage({super.key});
+  const MyTablePage({super.key, required this.onChangeIndex});
+  final Function(int) onChangeIndex;
+
   @override
   State<MyTablePage> createState() => _MyTablePageState();
 }

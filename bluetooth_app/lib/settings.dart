@@ -7,7 +7,8 @@ import 'package:bluetooth_app/main.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MySettingsPage extends StatefulWidget {
-  const MySettingsPage({super.key});
+  const MySettingsPage({super.key, required this.onChangeIndex});
+  final Function(int) onChangeIndex;
 
   @override
   State<MySettingsPage> createState() => _MySettingsPageState();

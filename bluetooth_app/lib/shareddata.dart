@@ -746,7 +746,7 @@ class SharedBluetoothData extends ChangeNotifier {
     int secondsTimeIndex = 3;
 
     // Prevent crash if current row is reboot row
-    if (rows[length - 1] == ["Reboot"]) {
+    if (rows[length - 1][0] == "Reboot") {
       return;
     }
 
@@ -756,7 +756,8 @@ class SharedBluetoothData extends ChangeNotifier {
 
     //Iterate backward and set date time until we reach a Reboot row
     int i = length - 2;
-    while (i >= 0 && rows[i] != ["Reboot"]) {
+    while (i >= 0 && rows[i][0] != "Reboot") {
+
       int currRowTime = rows[i][secondsTimeIndex];
       int timeDifference = (currRowTime - newestTime).abs();
       DateTime newDateTime = currentDateTime.subtract(Duration(seconds: timeDifference));

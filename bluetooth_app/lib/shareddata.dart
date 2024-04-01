@@ -361,7 +361,7 @@ class SharedBluetoothData extends ChangeNotifier {
     final subscription2 = usageChar?.onValueReceived.listen((value) {
       onUsage(value);
     });
-    
+
     device!.cancelWhenDisconnected(subscription2!);
     await usageChar?.setNotifyValue(true);
 
@@ -676,6 +676,10 @@ class SharedBluetoothData extends ChangeNotifier {
     }
   }
 
+  String _twoDigits(int n) {
+    return n >= 10 ? '$n' : '0$n';
+  }
+
   /// Callback when a security message is received
   /// @param {event}} event The BLE security data
   /// @private
@@ -726,6 +730,43 @@ class SharedBluetoothData extends ChangeNotifier {
       if (nextRetrieve.progress >= 0) {
         notifyDataProgress(nextRetrieve.progress);
       }
+    }
+    if (retrieveQueue.isEmpty && rows.isNotEmpty) {
+      calculateDateTime();
+    }
+  }
+
+  void calculateDateTime() {
+    DateTime currentDateTime = DateTime.now();
+    var formattedTime = '${currentDateTime.year}-${_twoDigits(currentDateTime.month)}-${_twoDigits(currentDateTime.day)} ' +
+        '${_twoDigits(currentDateTime.hour)}:${_twoDigits(currentDateTime.minute)}:${_twoDigits(currentDateTime.second)}';
+
+    int length = rows.length;
+    int dateTimeIndex = 2;
+    int secondsTimeIndex = 3;
+
+    // Prevent crash if current row is reboot row
+    if (rows[length - 1] == ["Reboot"]) {
+      return;
+    }
+
+    // Update the last item in rows with the current date time
+    rows[length - 1][dateTimeIndex] = formattedTime;
+    int newestTime = rows[length - 1][secondsTimeIndex];
+
+    //Iterate backward and set date time until we reach a Reboot row
+    int i = length - 2;
+    while (i >= 0 && rows[i] != ["Reboot"]) {
+      int currRowTime = rows[i][secondsTimeIndex];
+      int timeDifference = (currRowTime - newestTime).abs();
+      DateTime newDateTime = currentDateTime.subtract(Duration(seconds: timeDifference));
+
+      formattedTime = '${newDateTime.year}-${_twoDigits(newDateTime.month)}-${_twoDigits(newDateTime.day)} ' +
+          '${_twoDigits(newDateTime.hour)}:${_twoDigits(newDateTime.minute)}:${_twoDigits(newDateTime.second)}';
+
+      rows[i][dateTimeIndex] = formattedTime;
+
+      i--;
     }
   }
 

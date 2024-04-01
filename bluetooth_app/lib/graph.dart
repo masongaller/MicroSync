@@ -396,18 +396,29 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
                                 fitInsideVertically: true,
                                 tooltipMargin: 0,
                                 getTooltipItems: (touchedSpots) {
-                                  return touchedSpots.map(
-                                    (LineBarSpot touchedSpot) {
-                                      const textStyle = TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                      );
-                                      return LineTooltipItem(
-                                        "${readPoints.headers[touchedSpot.barIndex + 1]}: ${touchedSpot.x.toStringAsFixed(2)}, ${touchedSpot.y.toStringAsFixed(2)}",
-                                        textStyle,
-                                      );
-                                    },
-                                  ).toList();
+                                  // Accessing the DateTime associated with the first touchedSpot
+                                  DateTime dateTime = DateTime.parse(readPoints.rows[touchedSpots.first.spotIndex][2]);
+
+                                  return [
+                                    LineTooltipItem(
+                                      touchedSpots.map((touchedSpot) =>
+                                          "${readPoints.headers[touchedSpot.barIndex + 1]}: ${touchedSpot.x.toStringAsFixed(2)}, ${touchedSpot.y.toStringAsFixed(2)}")
+                                          .join(", "),
+                                      const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    LineTooltipItem(
+                                      "DateTime: $dateTime",
+                                      const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ];
                                 },
                               ),
                               getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {

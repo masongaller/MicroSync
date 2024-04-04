@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:bluetooth_app/shareddata.dart';
+import 'package:micro_sync/shareddata.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

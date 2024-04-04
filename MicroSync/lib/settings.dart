@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:bluetooth_app/shareddata.dart';
+import 'package:micro_sync/shareddata.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bluetooth_app/main.dart';
+import 'package:micro_sync/main.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MySettingsPage extends StatefulWidget {

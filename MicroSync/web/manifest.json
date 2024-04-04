@@ -1,6 +1,6 @@
 {
-    "name": "bluetooth_app",
-    "short_name": "bluetooth_app",
+    "name": "micro_sync",
+    "short_name": "micro_sync",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

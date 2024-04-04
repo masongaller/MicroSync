@@ -1,4 +1,4 @@
-package com.example.bluetooth_app
+package com.example.micro_sync
 
 import io.flutter.embedding.android.FlutterActivity
 

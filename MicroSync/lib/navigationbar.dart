@@ -1,9 +1,9 @@
-import 'package:bluetooth_app/graph.dart';
-import 'package:bluetooth_app/home.dart';
-import 'package:bluetooth_app/saved.dart';
-import 'package:bluetooth_app/settings.dart';
-import 'package:bluetooth_app/shareddata.dart';
-import 'package:bluetooth_app/table.dart';
+import 'package:micro_sync/graph.dart';
+import 'package:micro_sync/home.dart';
+import 'package:micro_sync/saved.dart';
+import 'package:micro_sync/settings.dart';
+import 'package:micro_sync/shareddata.dart';
+import 'package:micro_sync/table.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

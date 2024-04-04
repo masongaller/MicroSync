@@ -1,5 +1,5 @@
-import 'package:bluetooth_app/shareddata.dart';
-import 'package:bluetooth_app/welcome.dart';
+import 'package:micro_sync/shareddata.dart';
+import 'package:micro_sync/welcome.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:bluetooth_app/shareddata.dart';
+import 'package:micro_sync/shareddata.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';

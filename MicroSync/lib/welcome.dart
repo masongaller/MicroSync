@@ -1,4 +1,4 @@
-import 'package:bluetooth_app/navigationbar.dart';
+import 'package:micro_sync/navigationbar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

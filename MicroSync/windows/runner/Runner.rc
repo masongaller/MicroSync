@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "bluetooth_app" "\0"
+            VALUE "FileDescription", "micro_sync" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "bluetooth_app" "\0"
+            VALUE "InternalName", "micro_sync" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "bluetooth_app.exe" "\0"
-            VALUE "ProductName", "bluetooth_app" "\0"
+            VALUE "OriginalFilename", "micro_sync.exe" "\0"
+            VALUE "ProductName", "micro_sync" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

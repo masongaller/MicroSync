@@ -35,5 +35,10 @@ The log data block is what actually logs the input data. In the first empty spac
 Here is an example Makecode that I have created. It is recommended to put the data logger service and set column blocks in your on start method block. You can put the log data block in any configuration you wish depending on your data collection needs. In this example I have the Micro:bit logging the Light Level and Temperature every 10 seconds.
 ![image](https://github.com/masongaller/IndependentStudy/assets/89870162/e9af77dd-fe5e-483a-9e4c-3636c87143ed)
 
+Feel free to mess around with any of the other blocks in the datalogger to configure to your needs! When you are finished making your program load it into the Micro:bit.
+
+Step 3: Launch The App!
+Once the app is launched you can click the scan button on the home screen which will look for nearby bluetooth devices. Since we used the bluetooh data logger service, the name of your Micro:bit should look something like this -> uBit [NAME]. Where NAME is randomly generated for your device. Ex. Mine says uBit [Zovig]. Everything is now setup and the data should now be streaming into the app.
+
 
 

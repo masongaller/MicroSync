@@ -22,6 +22,18 @@ You may get this message, just click Remove extension(s) and add pxt-blelog.
 
 You will now have two additional extensions on your screen. One is named "Data Logger" and the other is "Log Bluetooth".
 
-Step 2:
+Step 2: Setup Data Logger
+There are 3 necessary blocks to get started.
+Under the Log Bluetooth tab, the bluetooth data logger service block. The bluetooth data logger service sets up the Micro:bit device to be compatible with bluetooth. It will also give the device a name so we can easily identify it on the app. If you click the plus button on the block it will give you the additional option of adding a passphrase. This passphrase can be set to anything you would like, but in order to connect to the microbit you will be prompted with this passphrase.
+![image](https://github.com/masongaller/IndependentStudy/assets/89870162/7ac778c8-3d7b-4a4c-80cd-0e319111b1a2)
+
+Under the Data Logger tab, the set columns and log data blocks. 
+The set columns blocks is the place for you to setup your variable names as you would like them to appear in the app. The plus and minus buttons allows you to add and remove as many variables as you would like. 
+The log data block is what actually logs the input data. In the first empty space you will select one of the variable names you created with the set columns block. In the second field you specify what you want the value to be. Again, you can add and remove as many variables that you want to log using the plus and minus button. Logging additional variables that you have not already set up with set columns may lead to unintended side effects.
+![image](https://github.com/masongaller/IndependentStudy/assets/89870162/a68df163-5af1-4d29-81e5-16f4aa2f7c18)
+
+Here is an example Makecode that I have created. It is recommended to put the data logger service and set column blocks in your on start method block. You can put the log data block in any configuration you wish depending on your data collection needs. In this example I have the Micro:bit logging the Light Level and Temperature every 10 seconds.
+![image](https://github.com/masongaller/IndependentStudy/assets/89870162/e9af77dd-fe5e-483a-9e4c-3636c87143ed)
+
 
 

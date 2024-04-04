@@ -42,7 +42,7 @@ Feel free to mess around with any of the other blocks in the data logger to conf
 Once the app is launched, you can click the scan button on the home screen which will look for nearby Bluetooth devices. Since we used the Bluetooth data logger service, the name of your Micro:bit should look something like this -> **uBit [NAME]**. Where **NAME** is randomly generated for your device. Ex. Mine says **uBit [Zovig]**. Everything is now setup and the data should now be streaming into the app.
 
 ## **Credits**
-Application Creator: Mason Galler
-Bluetooth Data Logger Service: Bill Siever
-Project Advisor: Bill Siever
+Application Creator: Mason Galler  
+Bluetooth Data Logger Service: Bill Siever  
+Project Advisor: Bill Siever  
 

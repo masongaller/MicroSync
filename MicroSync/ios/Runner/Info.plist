@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Our app requests this permission to connect with the micro:bit peripheral. This 			allows us to use the educational device to collect data and display it on screen.</string>
+	<string>Our app requests this permission to connect with the micro:bit peripheral. This allows us to use the educational device to collect data and display it on screen.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

@@ -1,3 +1,4 @@
+import 'package:micro_sync/enumerator.dart';
 import 'package:micro_sync/graph.dart';
 import 'package:micro_sync/home.dart';
 import 'package:micro_sync/saved.dart';
@@ -188,8 +189,8 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
                 break;
               default:
                 setState(() {
-                    context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
-                  });
+                  context.read<SharedBluetoothData>().showTutorial[currentPageIndex] = true;
+                });
             }
           },
         ),
@@ -245,10 +246,39 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
   }
 
   void _onPageChanged(int index) {
-    setState(() {
-      currentPageIndex = index;
-    });
-  }
+  setState(() {
+    currentPageIndex = index;
+    // Sort the data in ascending order by time whenever we view graph
+    if (currentPageIndex == 0) {
+      final sharedData = Provider.of<SharedBluetoothData>(context, listen: false);
+      sharedData.rows.sort((a, b) {
+        // Check if a or b is a reboot row
+        bool isAReboot = a.length == 2 && a[0] == "Reboot";
+        bool isBReboot = b.length == 2 && b[0] == "Reboot";
+
+        // Handle reboot rows separately
+        if (isAReboot && isBReboot) {
+          return 0; // Keep reboot rows in their relative order
+        } else if (isAReboot) {
+          return 1; // Place reboot row 'a' after non-reboot row 'b'
+        } else if (isBReboot) {
+          return -1; // Place non-reboot row 'b' before reboot row 'a'
+        }
+
+        // Compare non-reboot rows based on column values
+        final aValue = a[RowIndices.intTime];
+        final bValue = b[RowIndices.intTime];
+
+        if (aValue is int && bValue is int) {
+          return aValue.compareTo(bValue);
+        }
+
+        return 0; // Default case, no change in order
+      });
+    }
+  });
+}
+
 
   String _getAppBarTitle(int index) {
     switch (index) {

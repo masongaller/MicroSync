@@ -27,6 +27,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
   List<String> currHeaders = [];
   List<String> initializedHeaders = [];
   double maxY = 0;
+  double minY = double.infinity;
   double storedMinX = 0;
   double storedMaxX = 0;
 
@@ -171,7 +172,7 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
           icon,
           color: theme.colorScheme.onPrimary,
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
@@ -227,8 +228,9 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
 
       double? maxTime;
       maxY = 0;
+      minY = double.infinity;
       for (var row in watchPoints.rows) {
-        if (row.length == 1) {
+        if (row.length == 2) {
           //Skip reboot rows
           continue;
         }
@@ -250,7 +252,14 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
             if (maxY == 0 || yValue > maxY) {
               maxY = yValue;
             }
+            if (yValue < minY) {
+              minY = yValue;
+            }
           }
+        }
+        //Set to 0 if no min found
+        if (minY == double.infinity) {
+          minY = 0;
         }
       }
 
@@ -259,344 +268,340 @@ class _MyDataPageState extends State<MyDataPage> with AutomaticKeepAliveClientMi
         watchPoints.showTutorial[0] = false;
       }
 
-      return Stack(
-        children: <Widget>[
-          Column(
-            children: <Widget>[
-              const SizedBox(
-                height: 15,
+      return Column(
+        children: [
+          const SizedBox(
+            height: 15,
+          ),
+          Stack(
+            alignment: AlignmentDirectional.centerStart,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Row(
+                  children: [
+                    IconButton(
+                      key: keyPlayPause,
+                      icon: playPauseIcon,
+                      onPressed: () {
+                        zoomable = !zoomable;
+                        setState(() {
+                          if (zoomable) {
+                            playPauseIcon = const Icon(Icons.pause);
+                          } else {
+                            playPauseIcon = const Icon(Icons.play_arrow);
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
-              Stack(
-                alignment: AlignmentDirectional.centerStart,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          key: keyPlayPause,
-                          icon: playPauseIcon,
-                          onPressed: () {
-                            zoomable = !zoomable;
-                            setState(() {
-                              if (zoomable) {
-                                playPauseIcon = const Icon(Icons.pause);
-                              } else {
-                                playPauseIcon = const Icon(Icons.play_arrow);
-                              }
-                            });
+              Container(
+                alignment: Alignment.center, // Align text to the center
+                child: const Text(
+                  'Sample Chart',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16, left: 6),
+              child: ZoomableChart(
+                maxX: maxTime ?? 0,
+                minX: readPoints.rows.isNotEmpty ? readPoints.rows[0][RowIndices.intTime].toDouble() : 0,
+                builder: (minX, maxX) {
+                  storedMinX = minX;
+                  storedMaxX = maxX;
+
+                  List<LineChartBarData> lineBarsData = List<LineChartBarData>.generate(
+                    watchPoints.headers.length - 1,
+                    (barIndex) {
+                      String header = watchPoints.headers[barIndex + 1];
+                      return LineChartBarData(
+                        spots: List<FlSpot>.generate(
+                          watchPoints.rows.length,
+                          (index) {
+                            if (watchPoints.rows[index][0] == "Reboot") {
+                              //Create discontinuity in graph to signify data reboot
+                              verticalLines.add(VerticalLine(
+                                  color: theme.dividerColor.withOpacity(0.2),
+                                  x: watchPoints.rows[index][1].toDouble() + 0.5,
+                                  dashArray: [2, 4]));
+                              return FlSpot.nullSpot;
+                            }
+                            dynamic value = watchPoints.rows[index][watchPoints.fullHeaders.indexOf(header)];
+                            double yValue = (value is double || value is int)
+                                ? value.toDouble() // Already a double or int, no need to parse
+                                : double.parse(value.toString()); // Parse if it's a String
+
+                            return FlSpot(
+                              watchPoints.rows[index][RowIndices.intTime].toDouble(),
+                              yValue,
+                            );
                           },
                         ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      alignment: Alignment.center, // Align text to the center
-                      child: const Text(
-                        'Sample Chart',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16, left: 6),
-                  child: ZoomableChart(
-                    maxX: maxTime ?? 0,
-                    minX: readPoints.rows.isNotEmpty ? readPoints.rows[0][RowIndices.intTime].toDouble() : 0,
-                    builder: (minX, maxX) {
-                      storedMinX = minX;
-                      storedMaxX = maxX;
-
-                      List<LineChartBarData> lineBarsData = List<LineChartBarData>.generate(
-                        watchPoints.headers.length - 1,
-                        (barIndex) {
-                          String header = watchPoints.headers[barIndex + 1];
-                          return LineChartBarData(
-                            spots: List<FlSpot>.generate(
-                              watchPoints.rows.length,
-                              (index) {
-                                if (watchPoints.rows[index][0] == "Reboot") {
-                                  //Create discontinuity in graph to signify data reboot
-                                  verticalLines.add(VerticalLine(
-                                      color: theme.dividerColor.withOpacity(0.2),
-                                      x: watchPoints.rows[index - 1][RowIndices.intTime].toDouble() + 0.5,
-                                      dashArray: [2, 4]));
-                                  return FlSpot.nullSpot;
-                                }
-                                dynamic value = watchPoints.rows[index][watchPoints.fullHeaders.indexOf(header)];
-                                double yValue = (value is double || value is int)
-                                    ? value.toDouble() // Already a double or int, no need to parse
-                                    : double.parse(value.toString()); // Parse if it's a String
-
-                                return FlSpot(
-                                  watchPoints.rows[index][RowIndices.intTime].toDouble(),
-                                  yValue,
-                                );
-                              },
-                            ),
-                            isCurved: false,
-                            show: selectedButton[barIndex],
-                            isStrokeCapRound: true,
-                            dotData: const FlDotData(show: true),
-                            belowBarData: BarAreaData(show: false),
-                            color: barColors?[barIndex] ?? theme.colorScheme.onBackground,
-                          );
-                        },
+                        isCurved: false,
+                        show: selectedButton[barIndex],
+                        isStrokeCapRound: true,
+                        dotData: const FlDotData(show: true),
+                        belowBarData: BarAreaData(show: false),
+                        color: barColors?[barIndex] ?? theme.colorScheme.onBackground,
                       );
+                    },
+                  );
 
-                      return LineChart(
-                        LineChartData(
-                          extraLinesData: ExtraLinesData(
-                            verticalLines: verticalLines,
-                          ),
-                          lineBarsData: lineBarsData,
-                          titlesData: FlTitlesData(
-                            bottomTitles: AxisTitles(
-                              sideTitles: bottomTitles,
-                              axisNameWidget: Text(readPoints.headers[0]),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: leftTitles,
-                              axisNameWidget: Text(currHeaders.join(", ")),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
-                          borderData: FlBorderData(
-                            show: true,
-                            border: Border(
-                              bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 4),
-                              left: const BorderSide(color: Colors.transparent),
-                              right: const BorderSide(color: Colors.transparent),
-                              top: const BorderSide(color: Colors.transparent),
-                            ),
-                          ),
-                          lineTouchData: LineTouchData(
-                              enabled: !zoomable,
-                              touchTooltipData: LineTouchTooltipData(
-                                tooltipRoundedRadius: 20.0,
-                                showOnTopOfTheChartBoxArea: true,
-                                fitInsideHorizontally: true,
-                                fitInsideVertically: true,
-                                tooltipMargin: 0,
-                                getTooltipItems: (touchedSpots) {
-                                  return touchedSpots.map((touchedSpot) {
-                                    // Accessing the DateTime or Seconds associated with the touchedSpot
-                                    var spotIndex = touchedSpot.spotIndex;
-                                    var valueIndex = readPoints.rows[spotIndex][2] == "null" ? 3 : 2;
-                                    var value = valueIndex == 3
-                                        ? touchedSpot.x.toStringAsFixed(2)
-                                        : readPoints.rows[spotIndex][valueIndex];
-                                    var labelText = readPoints.rows[spotIndex][2] == "null" ? "Seconds" : "DateTime";
+                  return LineChart(
+                    LineChartData(
+                      extraLinesData: ExtraLinesData(
+                        verticalLines: verticalLines,
+                      ),
+                      lineBarsData: lineBarsData,
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: bottomTitles,
+                          axisNameWidget: Text(readPoints.headers[0]),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: leftTitles,
+                          axisNameWidget: Text(currHeaders.join(", ")),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(
+                        show: true,
+                        border: Border(
+                          bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 4),
+                          left: const BorderSide(color: Colors.transparent),
+                          right: const BorderSide(color: Colors.transparent),
+                          top: const BorderSide(color: Colors.transparent),
+                        ),
+                      ),
+                      lineTouchData: LineTouchData(
+                          enabled: !zoomable,
+                          touchTooltipData: LineTouchTooltipData(
+                            tooltipRoundedRadius: 20.0,
+                            showOnTopOfTheChartBoxArea: true,
+                            fitInsideHorizontally: true,
+                            fitInsideVertically: true,
+                            tooltipMargin: 0,
+                            getTooltipItems: (touchedSpots) {
+                              return touchedSpots.map((touchedSpot) {
+                                // Accessing the DateTime or Seconds associated with the touchedSpot
+                                var spotIndex = touchedSpot.spotIndex;
+                                var valueIndex = readPoints.rows[spotIndex][2] == "null" ? 3 : 2;
+                                var value = valueIndex == 3
+                                    ? touchedSpot.x.toStringAsFixed(2)
+                                    : readPoints.rows[spotIndex][valueIndex];
+                                var labelText = readPoints.rows[spotIndex][2] == "null" ? "Seconds" : "DateTime";
 
-                                    return LineTooltipItem(
-                                      "${readPoints.headers[touchedSpot.barIndex + 1]}: ${touchedSpot.y.toStringAsFixed(2)}",
-                                      const TextStyle(
+                                return LineTooltipItem(
+                                  "${readPoints.headers[touchedSpot.barIndex + 1]}: ${touchedSpot.y.toStringAsFixed(2)}",
+                                  const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: touchedSpot.barIndex == 0 ? "\n$labelText: $value" : "",
+                                      style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
-                                      children: [
-                                        
-                                        TextSpan(
-                                          text: touchedSpot.barIndex == 0 ? "\n$labelText: $value" : "",
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList();
-                                },
-                              ),
-                              getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {
-                                return indicators.map(
-                                  (int index) {
-                                    final line = FlLine(color: theme.dividerColor, strokeWidth: 1, dashArray: [2, 4]);
-                                    return TouchedSpotIndicatorData(
-                                      line,
-                                      const FlDotData(show: false),
-                                    );
-                                  },
-                                ).toList();
-                              },
-                              getTouchLineEnd: (_, __) => double.infinity),
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: true,
-                            drawHorizontalLine: true,
-                            verticalInterval: getInvervalSize(),
-                            getDrawingHorizontalLine: (value) {
-                              return FlLine(
-                                color: theme.dividerColor.withOpacity(0.2),
-                                strokeWidth: 1,
-                              );
-                            },
-                            getDrawingVerticalLine: (value) {
-                              return FlLine(
-                                color: theme.dividerColor.withOpacity(0.2),
-                                strokeWidth: 1,
-                              );
-                            },
-                          ),
-                          minX: minX,
-                          minY: 0,
-                          maxX: maxX,
-                          maxY: maxY,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16, left: 6),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: readPoints.headers.length - 1,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: CheckboxListTile(
-                            title: Text(readPoints.headers[index + 1]),
-                            value: selectedButton[index],
-                            controlAffinity: ListTileControlAffinity.leading,
-                            activeColor: barColors?[index] ?? theme.colorScheme.onBackground,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedButton[index] = value!;
-                                if (value) {
-                                  currHeaders.add(readPoints.headers[index + 1]);
-                                } else {
-                                  currHeaders.remove(readPoints.headers[index + 1]);
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                        IconButton(
-                          key: index == 0 ? infoButton : null,
-                          icon: const Icon(Icons.info),
-                          onPressed: () {
-                            // Calculate mean, median, and mode
-                            String header = watchPoints.headers[index + 1];
-                            List<double> values = [];
-
-                            // Collect all values corresponding to the header
-                            for (List<dynamic> row in readPoints.rows) {
-                              if (row[0] == "Reboot") {
-                                continue;
-                              }
-                              dynamic value = row[readPoints.fullHeaders.indexOf(header)];
-                              if (value != null && value is String) {
-                                values.add(value.isNotEmpty ? double.parse(value) : 0);
-                              }
-                            }
-
-                            // Calculate Mean
-                            double mean = values.isNotEmpty ? values.reduce((a, b) => a + b) / values.length : 0;
-
-                            // Calculate Median
-                            double median = 0;
-                            if (values.isNotEmpty) {
-                              values.sort();
-                              int middle = values.length ~/ 2;
-                              median =
-                                  values.length.isEven ? (values[middle - 1] + values[middle]) / 2.0 : values[middle];
-                            }
-
-                            // Calculate Mode
-                            int mode = 0;
-                            if (values.isNotEmpty) {
-                              Map<double, int> counts = {};
-                              values.forEach((element) {
-                                counts[element] = counts.containsKey(element) ? counts[element]! + 1 : 1;
-                              });
-                              mode = counts.entries
-                                  .fold(counts.entries.first, (a, b) => b.value > a.value ? b : a)
-                                  .key
-                                  .toInt();
-                            }
-
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text(
-                                    readPoints.headers[index + 1],
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Mean: $mean',
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Median: $median',
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Mode: $mode',
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                    ],
-                                  ),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text(
-                                        'Close',
-                                        style: TextStyle(
-                                          color: Colors.blue,
-                                          fontSize: 16,
-                                        ),
-                                      ),
                                     ),
                                   ],
                                 );
+                              }).toList();
+                            },
+                          ),
+                          getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {
+                            return indicators.map(
+                              (int index) {
+                                final line = FlLine(color: theme.dividerColor, strokeWidth: 1, dashArray: [2, 4]);
+                                return TouchedSpotIndicatorData(
+                                  line,
+                                  const FlDotData(show: false),
+                                );
                               },
-                            );
+                            ).toList();
+                          },
+                          getTouchLineEnd: (_, __) => double.infinity),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: true,
+                        drawHorizontalLine: true,
+                        verticalInterval: getInvervalSize(),
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: theme.dividerColor.withOpacity(0.2),
+                            strokeWidth: 1,
+                          );
+                        },
+                        getDrawingVerticalLine: (value) {
+                          return FlLine(
+                            color: theme.dividerColor.withOpacity(0.2),
+                            strokeWidth: 1,
+                          );
+                        },
+                      ),
+                      minX: minX,
+                      minY: minY,
+                      maxX: maxX,
+                      maxY: maxY,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16, left: 6),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.2, // Set maximum height to 20% of screen height
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: readPoints.headers.length - 1,
+                itemBuilder: (context, index) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: CheckboxListTile(
+                          title: Text(readPoints.headers[index + 1]),
+                          value: selectedButton[index],
+                          controlAffinity: ListTileControlAffinity.leading,
+                          activeColor: barColors?[index] ?? theme.colorScheme.onBackground,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedButton[index] = value!;
+                              if (value) {
+                                currHeaders.add(readPoints.headers[index + 1]);
+                              } else {
+                                currHeaders.remove(readPoints.headers[index + 1]);
+                              }
+                            });
                           },
                         ),
-                      ],
-                    );
-                  },
-                ),
+                      ),
+                      IconButton(
+                        key: index == 0 ? infoButton : null,
+                        icon: const Icon(Icons.info),
+                        onPressed: () {
+                          // Calculate mean, median, and mode
+                          String header = watchPoints.headers[index + 1];
+                          List<double> values = [];
+
+                          // Collect all values corresponding to the header
+                          for (List<dynamic> row in readPoints.rows) {
+                            if (row[0] == "Reboot") {
+                              continue;
+                            }
+                            dynamic value = row[readPoints.fullHeaders.indexOf(header)];
+                            if (value != null && value is String) {
+                              values.add(value.isNotEmpty ? double.parse(value) : 0);
+                            }
+                          }
+
+                          // Calculate Mean
+                          double mean = values.isNotEmpty ? values.reduce((a, b) => a + b) / values.length : 0;
+
+                          // Calculate Median
+                          double median = 0;
+                          if (values.isNotEmpty) {
+                            values.sort();
+                            int middle = values.length ~/ 2;
+                            median =
+                                values.length.isEven ? (values[middle - 1] + values[middle]) / 2.0 : values[middle];
+                          }
+
+                          // Calculate Mode
+                          int mode = 0;
+                          if (values.isNotEmpty) {
+                            Map<double, int> counts = {};
+                            values.forEach((element) {
+                              counts[element] = counts.containsKey(element) ? counts[element]! + 1 : 1;
+                            });
+                            mode = counts.entries
+                                .fold(counts.entries.first, (a, b) => b.value > a.value ? b : a)
+                                .key
+                                .toInt();
+                          }
+
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text(
+                                  readPoints.headers[index + 1],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Mean: $mean',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Median: $median',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Mode: $mode',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text(
+                                      'Close',
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
-            ],
+            ),
           ),
         ],
       );

@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:micro_sync/shareddata.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class MyTablePage extends StatefulWidget {
-  const MyTablePage({super.key, required this.onChangeIndex});
+  const MyTablePage({Key? key, required this.onChangeIndex}) : super(key: key);
   final Function(int) onChangeIndex;
 
   @override
@@ -16,7 +15,8 @@ class MyTablePage extends StatefulWidget {
 
 class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClientMixin<MyTablePage> {
   bool initOnce = true;
-  List<bool> visibleColumns = [];
+  List<bool> sortAscending = [];
+  List<double> columnWidths = []; // List to store calculated column widths
 
   late TutorialCoachMark tutorialCoachMark;
   GlobalKey keyColumnCollapse = GlobalKey();
@@ -25,9 +25,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Ensure the theme is initialized only once
     if (!_isThemeInitialized) {
-      // Access the theme and create tutorial only when dependencies change
       createTutorial();
       _isThemeInitialized = true;
     }
@@ -54,10 +52,8 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
 
   List<TargetFocus> _createTargets(ThemeData theme) {
     List<TargetFocus> targets = [];
-
-    // Styling for the infoButton target
     targets.add(TargetFocus(
-      identify: "Collumn Collapse",
+      identify: "Sort",
       keyTarget: keyColumnCollapse,
       alignSkip: Alignment.topRight,
       enableOverlayTab: true,
@@ -75,7 +71,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  "Column Collapse Button",
+                  "Sort Button",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onPrimary,
@@ -84,7 +80,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  "Clicking here will allow you to collapse the column to take up less space.",
+                  "Clicking here will allow you to sort by the given column.",
                   style: TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 16,
@@ -96,22 +92,31 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
         ),
       ],
     ));
-
     return targets;
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Invoke the overridden method
+    super.build(context);
 
-    final watchPoints = context
-        .watch<SharedBluetoothData>(); //Use context.watch<T>() when the widget needs to rebuild when the model changes.
-    final readPoints = context.read<SharedBluetoothData>(); //To modify the data without rebuilding the widget
+    final watchPoints = context.watch<SharedBluetoothData>();
+    final readPoints = context.read<SharedBluetoothData>();
+    double columnWidthTotal = 0;
 
     if (watchPoints.fullHeaders.isNotEmpty) {
-      if (initOnce || visibleColumns.length != watchPoints.headers.length) {
+      if (initOnce || sortAscending.length != watchPoints.headers.length) {
         initOnce = false;
-        visibleColumns = List.generate(watchPoints.headers.length, (index) => true);
+        sortAscending = List.generate(watchPoints.headers.length, (index) => true);
+        columnWidths = List.generate(watchPoints.headers.length, (index) {
+          // Calculate width required for each header text
+          final headerText = watchPoints.headers[index];
+          final textWidth = TextPainter(
+            text: TextSpan(text: headerText, style: const TextStyle(fontStyle: FontStyle.italic)),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          columnWidthTotal += textWidth.width * 2; // Add width required for each header text
+          return textWidth.width * 2; // Return the width required for the header text
+        });
       }
 
       if (watchPoints.showTutorial[1]) {
@@ -131,45 +136,62 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
             columns: List<DataColumn>.generate(
               watchPoints.headers.length,
               (int index) => DataColumn2(
-                fixedWidth: visibleColumns[index] ? 175 : 55,
-                label: Expanded(
-                  child: Row(
-                    children: [
-                      Icon(
-                        !visibleColumns[index] ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                        key: index == 0 ? keyColumnCollapse : null,
+                label: Row(
+                  children: [
+                    Icon(
+                      sortAscending[index] ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      key: index == 0 ? keyColumnCollapse : null,
+                    ),
+                    Flexible(
+                      child: Text(
+                        watchPoints.headers[index],
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      Visibility(
-                        visible: visibleColumns[index],
-                        child: Flexible(
-                          child: Text(
-                            watchPoints.headers[index],
-                            style: const TextStyle(fontStyle: FontStyle.italic),
-                            overflow: TextOverflow.ellipsis, // Apply ellipsis for long text
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                
+                fixedWidth: columnWidthTotal > MediaQuery.of(context).size.width ? null : columnWidths[index], // Set fixed width based on calculated column width if columnWidthTotal is less than maximumWidth, otherwise use null
                 onSort: (columnIndex, ascending) {
                   setState(() {
-                    visibleColumns[index] = !visibleColumns[index];
+                    sortAscending[columnIndex] = !sortAscending[columnIndex];
+                    // Perform sorting based on columnIndex
+                    watchPoints.rows.sort((a, b) {
+                      // Check if a or b is a reboot row
+                      bool isAReboot = a.length == 2 && a[0] == "Reboot";
+                      bool isBReboot = b.length == 2 && b[0] == "Reboot";
+
+                      // Handle reboot rows separately
+                      if (isAReboot && isBReboot) {
+                        return 0; // Keep reboot rows in their relative order
+                      } else if (isAReboot) {
+                        return 1; // Place reboot row 'a' after non-reboot row 'b'
+                      } else if (isBReboot) {
+                        return -1; // Place non-reboot row 'b' before reboot row 'a'
+                      }
+
+                      // Compare non-reboot rows based on column values
+                      final aValue = a[columnIndex + 3]; // Skip first 3 elements
+                      final bValue = b[columnIndex + 3];
+
+                      if (aValue is String && bValue is String) {
+                        return sortAscending[columnIndex] ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+                      } else if (aValue is int && bValue is int) {
+                        return sortAscending[columnIndex] ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+                      }
+
+                      return 0; // Default case, no change in order
+                    });
                   });
                 },
               ),
             ),
-            rows: watchPoints.rows
-                .where((rowData) => !(rowData.length == 1)) //Do not include reboot rows
-                .map((rowData) {
+            rows: watchPoints.rows.where((rowData) => !(rowData.length == 2)).map((rowData) {
               return DataRow(
                 cells: List<DataCell>.generate(rowData.length - 3, (cellIndex) {
-                  bool cellVisibility = visibleColumns[cellIndex];
                   return DataCell(
-                    Visibility(
-                      visible: cellVisibility,
-                      child: Text(rowData[cellIndex + 3].toString()),
-                    ),
+                    Text(rowData[cellIndex + 3].toString()),
                   );
                 }),
               );
@@ -182,7 +204,7 @@ class _MyTablePageState extends State<MyTablePage> with AutomaticKeepAliveClient
         body: Center(
           child: Text(
             'No Data Yet!',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.headline6,
           ),
         ),
       );

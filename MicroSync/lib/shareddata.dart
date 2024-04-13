@@ -530,7 +530,7 @@ class SharedBluetoothData extends ChangeNotifier {
       if (line == '0') {
         // Single 0 is reboot
         // print('Reboot');
-        rows.add(["Reboot"]);
+        rows.add(["Reboot", prevTime]);
         _nextDataAfterReboot = true;
         _largestTime = prevTime;
         _prevTime = 0;
@@ -1228,7 +1228,7 @@ class SharedBluetoothData extends ChangeNotifier {
         // Readd data if its of the same type and size
         if (currFullHeaders.equals(_fullHeaders)) {
           //Readding the data should not be continuous with saved data.
-          rows.add(["Reboot"]);
+          rows.add(["Reboot", largestTime]);
           int lastTime = 0;
           int lastTimeCalculated = 0;
           for (int i = 0; i < currRows.length; i++) {

@@ -153,7 +153,7 @@ class _MySettingsPageState extends State<MySettingsPage> with AutomaticKeepAlive
                       onPressed: (int index) {
                         setState(() {
                           _selected[index] = !_selected[index];
-                          readTheme.toggleTheme();
+                          readTheme.toggleTheme(_selected[0]);
                         });
                       },
                       borderRadius: BorderRadius.circular(30),

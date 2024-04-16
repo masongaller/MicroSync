@@ -49,8 +49,8 @@ class ThemeFlip extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
 
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+  void toggleTheme(darkModeBool) {
+    _themeMode = darkModeBool ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 }
